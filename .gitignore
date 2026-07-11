@@ -1,0 +1,19 @@
+# env
+.env
+
+# python
+__pycache__/
+*.pyc
+.venv/
+
+# postgres data
+pgdata/
+
+# node / next
+web/node_modules/
+web/.next/
+web/out/
+
+# misc
+.DS_Store
+.claude/settings.local.json
