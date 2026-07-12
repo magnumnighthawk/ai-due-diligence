@@ -22,6 +22,7 @@ python3 -m venv .venv && .venv/bin/pip install -r api/requirements.txt
 .venv/bin/python3 ingest/run_ingest.py    # parse, chunk, embed, load the surrogate deal room
 .venv/bin/python3 ingest/run_extract.py   # typed findings via structured-output LLM extraction
 .venv/bin/python3 ingest/run_resolve.py   # entity resolution: link findings to canonical entities
+.venv/bin/python3 ingest/run_compose.py   # cross-reference: deterministic rules + LangGraph agent -> risks
 
 cd api && ../.venv/bin/uvicorn app.main:app --reload
 # in another shell
@@ -99,3 +100,50 @@ GROUP BY e.canonical_name HAVING count(DISTINCT f.workstream) > 1;"
 This should show `Samsung Display Co., Ltd.` linked from both `financial` (the concentration
 finding) and `commercial` (the license agreement's assignment/termination/term-expiry clauses) --
 the cross-workstream finding no single workstream would catch on its own.
+
+### Cross-reference + risk composition (Block 3)
+
+`ingest/lib/risk_rules.py` is the reliable floor: it groups entity-resolved findings by
+`entity_id` and fires two deterministic rules.
+
+- **Concentration × assignment.** If an entity has both a `customer_concentration` finding and an
+  assignment/change-of-control `contract_clause`, emit one risk citing every related finding
+  (including termination and term-expiry clauses as compounding evidence). Severity is High if
+  either an exact disclosed percentage is ≥20%, *or* the certain facts alone compound enough
+  (assignment rights + 2+ independent termination triggers + a fixed near-term expiry) --
+  deliberately not dependent on guessing which anonymized concentration-table row belongs to the
+  entity. This is what produces the money-shot risk: Samsung Display Co., Ltd. has only a
+  disclosed ">10%" threshold (not an exact figure), but assignment-on-change-of-control + 3
+  termination triggers + a Dec-2027 expiry is enough certain evidence on its own for High.
+- **Personnel monitoring.** A senior-finance departure (the CFO retirement) is always emitted as
+  its own standalone, Low-severity note -- never merged into a customer risk, since nothing in the
+  corpus ties it to a specific relationship. Calibration (not flagging everything red) is
+  deliberate, not an oversight.
+
+`ingest/lib/risk_agent.py` is the exploratory ceiling: a real LangGraph graph
+(`plan → gather → propose → self_check → emit`) that, per entity, gathers both entity-resolved
+findings and *candidate* findings from the same source document that entity resolution declined to
+auto-link (e.g. the anonymized "Customer A/B/C" table), and asks an LLM whether that candidate
+evidence plausibly sharpens the risk enough to argue for higher severity than the rules engine's
+conservative version -- always labeling anything inferred as inferred, and always landing in
+`review_status = 'needs_review'` if it does emit something.
+
+On this corpus, the agent's specific attempt -- "Customer A's 41% might be Samsung's true
+concentration" -- gets correctly **rejected by its own self-check step**, which judged the
+identity inference (SDC = "Customer A") as unsupported by the cited findings. `run_compose.py`
+prints that rejection and its reason rather than silently dropping it: this is the safety
+mechanism working as designed ("the agent can hallucinate a link... every agent-composed risk
+still carries citations a human verifies"), not a failure to route around. The honest answer
+here wasn't to keep prompt-engineering until the checker rubber-stamped a weak inference -- it
+was to move the legitimately-certain compounding factors into the rules tier instead, which is
+exactly the plan's own cut line: *"rules-only cross-referencing that works beats a flaky agent
+every time."*
+
+Verify the done-when condition:
+
+```bash
+docker compose exec db psql -U postgres -d diligence -c "
+SELECT r.title, r.severity, r.source, array_agg(DISTINCT f.workstream), r.finding_ids
+FROM risks r, unnest(r.finding_ids) fid JOIN findings f ON f.id = fid
+GROUP BY r.id, r.title, r.severity, r.source, r.finding_ids;"
+```

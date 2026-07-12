@@ -48,5 +48,6 @@ CREATE TABLE risks (
   severity TEXT,
   rationale TEXT,
   source TEXT,
-  finding_ids BIGINT[]
+  finding_ids BIGINT[],
+  review_status TEXT DEFAULT 'auto'
 );
