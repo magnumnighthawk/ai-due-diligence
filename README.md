@@ -19,7 +19,9 @@ docker compose up -d   # Postgres + pgvector, schema applied on first boot
 
 python3 -m venv .venv && .venv/bin/pip install -r api/requirements.txt
 
-.venv/bin/python3 ingest/run_ingest.py   # parse, chunk, embed, load the surrogate deal room
+.venv/bin/python3 ingest/run_ingest.py    # parse, chunk, embed, load the surrogate deal room
+.venv/bin/python3 ingest/run_extract.py   # typed findings via structured-output LLM extraction
+.venv/bin/python3 ingest/run_resolve.py   # entity resolution: link findings to canonical entities
 
 cd api && ../.venv/bin/uvicorn app.main:app --reload
 # in another shell
@@ -56,3 +58,44 @@ would contain, rather than only the SEC filings used for this demo. Text inside 
 never treated as a heading candidate (financial tables shred into bogus "sections" otherwise), and
 inline-XBRL header/hidden blocks are stripped before chunking since they're machine-only metadata
 that would otherwise pollute embedding search with raw concept-name text.
+
+### Typed extraction + entity resolution (Block 2)
+
+`ingest/lib/extract_findings.py` runs targeted structured-output extraction (Pydantic schemas in
+`ingest/lib/schemas.py`) over chunks pre-classified by document + keyword match per finding type --
+concentration language in the 10-K, assignment/termination/exclusivity clauses in the license
+exhibit, retirement/appointment language in the 8-K -- rather than blind whole-document extraction.
+Each finding keeps a `source_index` back to the excerpt it was drawn from, resolved to that chunk's
+real `char_start`/`char_end` in `documents.raw_text`.
+
+`ingest/lib/entity_resolution.py` links `customer_name`/`counterparty` mentions to canonical
+`entities` rows using rapidfuzz + embedding cosine similarity, with two things worth knowing:
+
+- **Bare abbreviations don't fuzzy/embedding-match their full name well** -- measured on this
+  corpus, "SDC" vs. "Samsung Display Co., Ltd." scores ~7/100 on token_set_ratio and ~0.30 cosine
+  similarity. Since these documents define abbreviations parenthetically on first use
+  (`Samsung Display Co., Ltd. ("SDC")`), a regex mines that convention into an alias map and
+  resolves "SDC" to the full name *before* fuzzy/embedding matching, rather than fabricating the
+  mapping. This is what actually makes the concentration finding and the license-agreement clauses
+  land on the same canonical entity.
+- **token_set_ratio/partial_ratio produced a false link** -- "LG Display" scored 82/100 against
+  "Samsung Display Co., Ltd." purely because both share the generic token "Display". Switched to
+  plain `fuzz.ratio` (whole-string, case-insensitive), which separates that case (46) from real
+  near-duplicates (93-100) cleanly.
+- Mentions shorter than 3 characters (the 10-K's anonymized "Customer A/B/C" concentration table)
+  are never auto-linked or used to seed a new canonical entity -- they always route to
+  `review_status = 'needs_review'`, since there's no reliable signal to resolve them and a false
+  link in a risk register is worse than a missing one.
+
+Verify the result:
+
+```bash
+docker compose exec db psql -U postgres -d diligence -c "
+SELECT e.canonical_name, array_agg(DISTINCT f.workstream), count(*)
+FROM findings f JOIN entities e ON e.id = f.entity_id
+GROUP BY e.canonical_name HAVING count(DISTINCT f.workstream) > 1;"
+```
+
+This should show `Samsung Display Co., Ltd.` linked from both `financial` (the concentration
+finding) and `commercial` (the license agreement's assignment/termination/term-expiry clauses) --
+the cross-workstream finding no single workstream would catch on its own.
