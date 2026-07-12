@@ -14,6 +14,14 @@ web/node_modules/
 web/.next/
 web/out/
 
+# eval: full CUAD source is 38MB -- only the small held-out subset is committed
+eval/data/CUADv1.json
+web/.env.local
+
+# promptfoo local artifacts
+eval/promptfoo/.promptfoo/
+.promptfoo/
+
 # misc
 .DS_Store
 .claude/settings.local.json

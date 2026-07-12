@@ -1,14 +1,26 @@
 from dotenv import load_dotenv
 from fastapi import FastAPI
+from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
 
 load_dotenv()
 
 from .answer import answer_question
 from .db import get_conn
+from .registry import router as registry_router
 from .retrieval import hybrid_search
 
 app = FastAPI(title="AI Due Diligence Acceleration")
+
+# Local demo only -- the Next.js dev server runs on a different origin.
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["http://localhost:3000", "http://127.0.0.1:3000"],
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
+
+app.include_router(registry_router)
 
 
 @app.get("/health")

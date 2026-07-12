@@ -32,6 +32,11 @@ cd web && npm install && npm run dev
 API health check: `http://localhost:8000/health`
 Web: `http://localhost:3000`
 
+The single-page UI is the trust feature: the **risk register** → click a risk → its **linked
+findings** (with workstream + resolved entity) → click a finding → the **source document with the
+cited char span highlighted** and scrolled into view. Endpoints: `GET /risks`, `GET /risks/{id}`
+(with findings), `GET /documents/{id}` (raw text), `POST /ask` (grounded, cited Q&A).
+
 ## Surrogate deal room: Universal Display Corporation (OLED, CIK 1005284)
 
 `ingest/run_ingest.py` loads four real UDC filings (already saved under `ingest/data/raw/` so
@@ -147,3 +152,25 @@ SELECT r.title, r.severity, r.source, array_agg(DISTINCT f.workstream), r.findin
 FROM risks r, unnest(r.finding_ids) fid JOIN findings f ON f.id = fid
 GROUP BY r.id, r.title, r.severity, r.source, r.finding_ids;"
 ```
+
+### Evaluation (Block 4)
+
+Three cheap, high-signal evals under `eval/` (details and latest numbers in `eval/README.md`):
+
+- **Extraction P/R** (`pytest`) — change-of-control detection scored against a held-out **CUAD**
+  subset (real gold annotations, eval-only): **P=1.00, R=0.80, F1=0.89**. The recall misses are
+  truncated CUAD spans — a measured, explainable failure, not a hidden one.
+- **Citation faithfulness** (`pytest`) — every finding's cited span must contain its claim:
+  span-containment **100%**, LLM-judge **93%**. The one miss is a real catch (a continuation
+  mislabeled as an appointment).
+- **Abstention** (`pytest` + **Promptfoo**) — unanswerable questions must return "insufficient
+  evidence"; answerable ones must not. Promptfoo run: **5/5**.
+
+```bash
+.venv/bin/python3 -m pytest eval -s                    # extraction P/R, faithfulness, abstention
+cd eval/promptfoo && npx promptfoo@0.121 eval -c promptfooconfig.yaml --no-cache   # Q&A via Promptfoo
+```
+
+One retrieval failure is kept deliberately (see `eval/README.md`): a query repeating the filer's
+own name falsely abstains because `ts_rank` has no corpus IDF — walking through it is a stronger
+signal than hiding it.

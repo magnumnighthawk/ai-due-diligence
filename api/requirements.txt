@@ -8,3 +8,5 @@ beautifulsoup4
 rapidfuzz
 langgraph
 python-dotenv
+numpy
+pytest

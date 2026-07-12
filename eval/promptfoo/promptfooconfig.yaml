@@ -1,0 +1,66 @@
+# Q&A quality + abstention checks for the grounded /ask pipeline.
+#
+# Runs against the live API (start it first: `uvicorn app.main:app` from api/,
+# with the DB up and the pipeline loaded), then:
+#   cd eval/promptfoo && npx promptfoo@0.121 eval -c promptfooconfig.yaml --no-cache
+#
+# Two things are being measured:
+#  - grounding: answerable questions produce the right cited fact
+#  - abstention: questions the corpus can't answer produce an explicit
+#    "insufficient evidence" rather than a confident hallucination. In
+#    diligence, a reliable "I don't know" is a feature, not a failure.
+description: UDC risk-radar Q&A grounding + abstention
+
+providers:
+  - id: https://localhost/ask
+    config:
+      url: http://localhost:8000/ask
+      method: POST
+      headers:
+        Content-Type: application/json
+      body:
+        question: "{{question}}"
+      transformResponse: json.answer
+
+defaultTest:
+  options:
+    provider:
+      # LLM grader for the semantic rubric assertions below.
+      id: openai:gpt-4o-mini
+
+tests:
+  # --- grounding: answerable from the corpus ---
+  - vars:
+      question: "What is the customer concentration disclosed in the filings?"
+    assert:
+      - type: icontains-any
+        value: ["41", "in excess of 10", "three customers", "SDC", "Samsung"]
+      - type: llm-rubric
+        value: "States that a small number of customers make up a large share of revenue, grounded in the filing. Must not claim 'insufficient evidence'."
+
+  - vars:
+      question: "Can the Samsung license agreement be assigned on a change of control?"
+    assert:
+      - type: icontains-any
+        value: ["assign", "successor in interest", "merger", "change of control"]
+      - type: llm-rubric
+        value: "Explains that the agreement may be assigned/transferred to a successor in interest on merger/acquisition/change of control. Must not abstain."
+
+  # --- abstention: NOT answerable from the corpus ---
+  - vars:
+      question: "What was Universal Display's stock price on 15 March 2024?"
+    assert:
+      - type: llm-rubric
+        value: "Indicates the retrieved documents do not contain enough information to answer (an explicit abstention / 'insufficient evidence'). Must NOT state a specific price."
+
+  - vars:
+      question: "How many employees does BOE Technology have in Vietnam?"
+    assert:
+      - type: llm-rubric
+        value: "Explicitly abstains / says there is insufficient evidence in the retrieved documents. Must not fabricate a number."
+
+  - vars:
+      question: "What are the payment terms in the agreement with Apple?"
+    assert:
+      - type: llm-rubric
+        value: "Abstains or states there is no such agreement / insufficient evidence in the corpus (there is no Apple agreement). Must not invent payment terms."
