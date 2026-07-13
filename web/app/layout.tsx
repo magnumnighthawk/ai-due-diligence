@@ -13,7 +13,7 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "AI Due Diligence — Risk Radar",
+  title: "Diligence Radar — cross-workstream risk",
   description: "Cross-workstream risk radar over a surrogate SEC-filing deal room",
 };
 
@@ -25,9 +25,9 @@ export default function RootLayout({
   return (
     <html
       lang="en"
-      className={`${geistSans.variable} ${geistMono.variable} h-full antialiased`}
+      className={`${geistSans.variable} ${geistMono.variable} h-full`}
     >
-      <body className="min-h-full flex flex-col">{children}</body>
+      <body className="min-h-full flex flex-col font-sans text-slate-900">{children}</body>
     </html>
   );
 }

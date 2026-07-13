@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useRef } from "react";
+import { ExternalLink, FileText } from "lucide-react";
 import type { DocumentDetail } from "../lib/api";
 
 type Props = {
@@ -14,9 +15,21 @@ type Props = {
 export default function DocumentViewer({ doc, highlight }: Props) {
   const markRef = useRef<HTMLElement | null>(null);
 
+  // Scroll the cited span into view. Key on primitive offsets (not the
+  // freshly-allocated highlight object) so this fires only on a real change.
+  // A synchronous scroll covers the common case; a timer backstop covers a
+  // first paint where the very large <pre> hasn't finished laying out yet.
+  // (Deliberately not requestAnimationFrame: rAF is paused in backgrounded
+  // tabs, so timers are the reliable choice.)
   useEffect(() => {
-    markRef.current?.scrollIntoView({ block: "center", behavior: "smooth" });
-  }, [highlight, doc.id]);
+    const scroll = () => markRef.current?.scrollIntoView({ block: "center" });
+    scroll();
+    // Backstops for a first mount where the very large <pre> is still laying
+    // out. Timers (not rAF, which is paused in backgrounded tabs) at a couple
+    // of intervals reliably re-center once layout settles.
+    const timers = [setTimeout(scroll, 60), setTimeout(scroll, 250)];
+    return () => timers.forEach(clearTimeout);
+  }, [doc.id, highlight?.char_start, highlight?.char_end]);
 
   const text = doc.raw_text;
   let before = text;
@@ -35,27 +48,34 @@ export default function DocumentViewer({ doc, highlight }: Props) {
   }
 
   return (
-    <div className="flex h-full flex-col">
-      <div className="border-b border-zinc-200 px-4 py-3 dark:border-zinc-800">
-        <div className="text-sm font-medium text-zinc-900 dark:text-zinc-100">
-          {doc.title}
+    // flex-1 + min-h-0 (not h-full): fills the space *below* the panel's
+    // sticky header instead of taking 100% of the panel and overlapping it.
+    <div className="flex min-h-0 flex-1 flex-col bg-white">
+      <div className="flex items-start gap-2.5 border-b border-slate-200 px-4 py-3">
+        <span className="mt-0.5 flex h-7 w-7 shrink-0 items-center justify-center rounded-md bg-slate-100 text-slate-500">
+          <FileText className="h-4 w-4" />
+        </span>
+        <div className="min-w-0">
+          <div className="truncate text-sm font-semibold text-slate-900">{doc.title}</div>
+          <a
+            href={doc.source_url}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="mt-0.5 inline-flex items-center gap-1 text-xs font-medium text-indigo-600 hover:text-indigo-700 hover:underline"
+          >
+            <span className="uppercase tracking-wide text-slate-400">{doc.doc_type}</span>
+            · view original filing
+            <ExternalLink className="h-3 w-3" />
+          </a>
         </div>
-        <a
-          href={doc.source_url}
-          target="_blank"
-          rel="noopener noreferrer"
-          className="text-xs text-blue-600 hover:underline dark:text-blue-400"
-        >
-          {doc.doc_type} · view original filing ↗
-        </a>
       </div>
       <div className="flex-1 overflow-y-auto px-4 py-3">
-        <pre className="whitespace-pre-wrap break-words font-mono text-xs leading-relaxed text-zinc-700 dark:text-zinc-300">
+        <pre className="whitespace-pre-wrap break-words font-mono text-[11px] leading-relaxed text-slate-600">
           {before}
           {cited && (
             <mark
               ref={markRef}
-              className="rounded bg-yellow-200 px-0.5 text-zinc-900 dark:bg-yellow-500/40 dark:text-yellow-50"
+              className="rounded-sm bg-amber-200/80 px-0.5 py-px text-slate-900 shadow-[0_0_0_1px_rgba(245,158,11,0.4)]"
             >
               {cited}
             </mark>

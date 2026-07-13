@@ -43,6 +43,21 @@ export type DocumentDetail = {
   raw_text: string;
 };
 
+export type Citation = {
+  marker: number;
+  doc_id: string;
+  doc_title: string;
+  section: string;
+  char_start: number;
+  char_end: number;
+  snippet: string;
+};
+
+export type AskResponse = {
+  answer: string;
+  citations: Citation[];
+};
+
 async function getJSON<T>(path: string): Promise<T> {
   const res = await fetch(`${API_BASE}${path}`);
   if (!res.ok) throw new Error(`${path} -> ${res.status}`);
@@ -53,3 +68,18 @@ export const fetchRisks = () => getJSON<RiskSummary[]>("/risks");
 export const fetchRisk = (id: number) => getJSON<RiskDetail>(`/risks/${id}`);
 export const fetchDocument = (id: string) =>
   getJSON<DocumentDetail>(`/documents/${encodeURIComponent(id)}`);
+
+export async function fetchAsk(question: string): Promise<AskResponse> {
+  const res = await fetch(`${API_BASE}/ask`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ question }),
+  });
+  if (!res.ok) throw new Error(`/ask -> ${res.status}`);
+  return res.json() as Promise<AskResponse>;
+}
+
+// Marks an answer the pipeline declined to answer from the corpus.
+export function isAbstention(answer: string): boolean {
+  return answer.toLowerCase().includes("insufficient evidence");
+}
