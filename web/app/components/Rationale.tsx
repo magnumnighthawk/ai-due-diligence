@@ -49,7 +49,7 @@ export default function Rationale({
           type="button"
           onClick={() => onSelectFinding(finding)}
           title={`Finding ${position}: ${finding.kind}`}
-          className={`mx-0.5 inline-flex h-4 min-w-4 items-center justify-center rounded-chip px-1 align-baseline font-mono text-micro font-semibold tabular-nums transition-colors duration-150 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-signal-500 focus-visible:ring-offset-1 active:scale-95 ${
+          className={`mx-0.5 inline-flex h-5 min-w-5 items-center justify-center rounded-full px-1.5 align-baseline font-mono text-micro font-semibold tabular-nums transition-colors duration-150 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-signal-500 focus-visible:ring-offset-1 active:scale-95 ${
             active
               ? "bg-signal-600 text-graphite-0"
               : "bg-signal-100 text-signal-700 hover:bg-signal-200"

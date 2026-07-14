@@ -12,7 +12,7 @@ export function Badge({
   return (
     <span
       title={title}
-      className={`inline-flex items-center gap-1 rounded-chip px-1.5 py-0.5 text-micro font-semibold uppercase tracking-wide ${className}`}
+      className={`inline-flex items-center gap-1 rounded-full px-2.5 py-0.5 text-micro font-semibold uppercase tracking-wide ${className}`}
     >
       {children}
     </span>
@@ -22,9 +22,9 @@ export function Badge({
 // Severity/confidence stay conventional rose/amber/emerald -- users expect
 // red = high risk; changing that would hurt usability, not distinctiveness.
 const SEVERITY_STYLES: Record<string, string> = {
-  High: "bg-rose-50 text-rose-700 ring-1 ring-inset ring-rose-200",
-  Medium: "bg-amber-50 text-amber-700 ring-1 ring-inset ring-amber-200",
-  Low: "bg-graphite-100 text-graphite-600 ring-1 ring-inset ring-graphite-200",
+  High: "bg-rose-100 text-rose-700",
+  Medium: "bg-amber-100 text-amber-800",
+  Low: "bg-graphite-100 text-graphite-600",
 };
 
 const SEVERITY_DOT: Record<string, string> = {
@@ -45,17 +45,10 @@ export function SeverityBadge({ severity }: { severity: string }) {
 export function SourceBadge({ source }: { source: string }) {
   // "agent" stays violet -- a legitimate third semantic category (provenance),
   // distinct from the graphite/signal neutral+brand palette.
-  const style =
-    source === "agent"
-      ? "bg-violet-50 text-violet-700 ring-1 ring-inset ring-violet-200"
-      : "bg-graphite-100 text-graphite-600 ring-1 ring-inset ring-graphite-200";
+  const style = source === "agent" ? "bg-violet-100 text-violet-700" : "bg-graphite-100 text-graphite-600";
   return <Badge className={style}>{source}</Badge>;
 }
 
 export function ReviewBadge() {
-  return (
-    <Badge className="bg-amber-50 text-amber-700 ring-1 ring-inset ring-amber-200">
-      needs review
-    </Badge>
-  );
+  return <Badge className="bg-amber-100 text-amber-800">needs review</Badge>;
 }

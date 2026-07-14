@@ -6,8 +6,8 @@ import { ICON_INLINE } from "./icons";
 // clauses/events, 0.95 exact figure). Shown as a plain percentage with a
 // two-tier tint -- deliberately no false precision beyond the number.
 const CONFIDENCE_STYLES = {
-  high: "bg-emerald-50 text-emerald-700 ring-1 ring-inset ring-emerald-200",
-  low: "bg-amber-50 text-amber-700 ring-1 ring-inset ring-amber-200",
+  high: "bg-emerald-100 text-emerald-700",
+  low: "bg-amber-100 text-amber-800",
 };
 
 export function ConfidenceBadge({ confidence }: { confidence: number | null }) {

@@ -97,30 +97,30 @@ export default function AskView({ onError }: { onError: (msg: string) => void })
     // removed from the DOM entirely, so a mobile user could click a citation
     // (which did fetch the doc) but could never see the highlighted span --
     // a broken feature, not graceful degradation.
-    <div className="flex min-h-0 flex-1 flex-col overflow-hidden lg:grid lg:grid-cols-[minmax(420px,1fr)_minmax(380px,1fr)]">
+    <div className="flex min-h-0 flex-1 flex-col gap-4 overflow-hidden bg-graphite-50 p-4 lg:grid lg:grid-cols-[minmax(420px,1fr)_minmax(380px,1fr)]">
       {/* Conversation + composer */}
-      <section className="flex min-h-0 flex-col border-r border-graphite-200 bg-graphite-50/50">
+      <section className="flex min-h-0 flex-col overflow-hidden rounded-card bg-graphite-0 shadow-card">
         <PanelHeader icon={<Sparkles className={ICON_DEFAULT} />}>Ask the deal room</PanelHeader>
 
-        <div ref={threadRef} className="flex-1 overflow-y-auto px-4 py-4">
+        <div ref={threadRef} className="flex-1 overflow-y-auto px-5 py-5">
           {messages.length === 0 ? (
             <div className="mx-auto max-w-md pt-8 text-center">
-              <div className="mx-auto mb-3 flex h-11 w-11 items-center justify-center rounded-card bg-signal-100 text-signal-600">
+              <div className="mx-auto mb-4 flex h-12 w-12 items-center justify-center rounded-card bg-signal-100 text-signal-600">
                 <Sparkles className="h-5 w-5" />
               </div>
-              <h2 className="text-sm font-semibold text-graphite-800">
+              <h2 className="text-lg font-semibold text-graphite-800">
                 Ask a question, get a cited answer
               </h2>
-              <p className="mt-1 text-xs text-graphite-600">
+              <p className="mt-1.5 text-body text-graphite-600">
                 Answers are grounded only in the retrieved filings. When the corpus can&apos;t answer,
                 the assistant says so rather than guessing.
               </p>
-              <div className="mt-4 space-y-2 text-left">
+              <div className="mt-5 space-y-2 text-left">
                 {EXAMPLES.map((ex) => (
                   <button
                     key={ex}
                     onClick={() => ask(ex)}
-                    className="w-full rounded-card border border-graphite-200 bg-graphite-0 px-3 py-2 text-left text-xs text-graphite-700 transition-all duration-150 hover:border-signal-300 hover:bg-signal-50/50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-signal-500 focus-visible:ring-offset-2 focus-visible:ring-offset-graphite-50 active:scale-[0.99]"
+                    className="w-full rounded-card border border-graphite-200 bg-graphite-0 px-3.5 py-2.5 text-left text-body text-graphite-700 shadow-raised transition-all duration-150 hover:shadow-lifted focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-signal-500 focus-visible:ring-offset-2 focus-visible:ring-offset-graphite-50 active:scale-[0.99]"
                   >
                     {ex}
                   </button>
@@ -141,9 +141,9 @@ export default function AskView({ onError }: { onError: (msg: string) => void })
             e.preventDefault();
             ask(input);
           }}
-          className="border-t border-graphite-200 bg-graphite-0 p-3"
+          className="border-t border-graphite-200 bg-graphite-0 p-3.5"
         >
-          <div className="flex items-end gap-2 rounded-card border border-graphite-300 bg-graphite-0 px-3 py-2 focus-within:border-signal-400 focus-within:ring-2 focus-within:ring-signal-200">
+          <div className="flex items-end gap-2 rounded-card border border-graphite-300 bg-graphite-0 px-3.5 py-2.5 shadow-raised focus-within:border-signal-400 focus-within:ring-2 focus-within:ring-signal-200">
             <textarea
               value={input}
               onChange={(e) => setInput(e.target.value)}
@@ -159,12 +159,12 @@ export default function AskView({ onError }: { onError: (msg: string) => void })
               // ring above (which does fire, since :focus-within triggers
               // from a focused descendant) -- so a bare focus:outline-none
               // here is intentional, not a missed focus style.
-              className="max-h-32 flex-1 resize-none bg-transparent text-sm text-graphite-800 placeholder:text-graphite-500 focus:outline-none"
+              className="max-h-32 flex-1 resize-none bg-transparent text-body text-graphite-800 placeholder:text-graphite-500 focus:outline-none"
             />
             <button
               type="submit"
               disabled={busy || !input.trim()}
-              className="flex h-8 items-center gap-1 rounded-card bg-signal-600 px-3 text-xs font-semibold text-graphite-0 transition-all duration-150 hover:bg-signal-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-signal-500 focus-visible:ring-offset-2 active:scale-[0.98] disabled:cursor-not-allowed disabled:bg-graphite-200 disabled:text-graphite-500 disabled:active:scale-100"
+              className="flex h-9 items-center gap-1 rounded-card bg-signal-600 px-3.5 text-xs font-semibold text-graphite-0 transition-all duration-150 hover:bg-signal-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-signal-500 focus-visible:ring-offset-2 active:scale-[0.98] disabled:cursor-not-allowed disabled:bg-graphite-200 disabled:text-graphite-500 disabled:active:scale-100"
             >
               Ask
               <CornerDownLeft className={ICON_DEFAULT} />
@@ -175,7 +175,7 @@ export default function AskView({ onError }: { onError: (msg: string) => void })
 
       {/* Source panel -- always rendered (see mobile-stacking note above),
           not conditionally hidden below md. */}
-      <section className="flex min-h-0 flex-col overflow-hidden bg-graphite-0">
+      <section className="flex min-h-0 flex-col overflow-hidden rounded-card bg-graphite-0 shadow-card">
         <PanelHeader icon={<FileText className={ICON_DEFAULT} />}>Source document</PanelHeader>
         {!doc || !activeCitation ? (
           <Empty>Click a citation to view its cited span in the source.</Empty>
@@ -203,10 +203,10 @@ function MessageBubble({
     return (
       <div className="flex justify-end">
         <div className="flex max-w-[85%] items-start gap-2">
-          <div className="rounded-bubble rounded-tr-sm bg-signal-600 px-3.5 py-2 text-sm text-graphite-0">
+          <div className="rounded-bubble rounded-tr-sm bg-signal-600 px-4 py-2.5 text-body text-graphite-0 shadow-raised">
             {message.text}
           </div>
-          <span className="mt-0.5 flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-graphite-200 text-graphite-600">
+          <span className="mt-0.5 flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-graphite-200 text-graphite-600">
             <User className={ICON_DEFAULT} />
           </span>
         </div>
@@ -216,25 +216,25 @@ function MessageBubble({
 
   return (
     <div className="flex items-start gap-2">
-      <span className="mt-0.5 flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-signal-100 text-signal-600">
+      <span className="mt-0.5 flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-signal-100 text-signal-600">
         <Sparkles className={ICON_DEFAULT} />
       </span>
       <div className="min-w-0 flex-1">
         {message.loading ? (
-          <div className="flex items-center gap-1.5 py-1 text-sm text-graphite-600">
+          <div className="flex items-center gap-1.5 py-1 text-body text-graphite-600">
             <span className="h-1.5 w-1.5 animate-pulse rounded-full bg-signal-500 motion-reduce:animate-none" />
             <span className="ml-1 text-xs">searching the filings…</span>
           </div>
         ) : message.abstained ? (
-          <div className="rounded-bubble rounded-tl-sm border border-amber-200 bg-amber-50 px-3.5 py-2 text-sm text-amber-800">
+          <div className="rounded-bubble rounded-tl-sm bg-amber-50 px-4 py-2.5 text-body text-amber-800 shadow-raised">
             {message.text}
-            <div className="mt-1 text-micro font-medium text-amber-600">
+            <div className="mt-1.5 text-xs font-medium text-amber-600">
               No sufficient evidence in the corpus — abstained rather than guessing.
             </div>
           </div>
         ) : (
           <>
-            <div className="rounded-bubble rounded-tl-sm border border-graphite-200 bg-graphite-0 px-3.5 py-2 text-sm leading-relaxed text-graphite-700">
+            <div className="rounded-bubble rounded-tl-sm border border-graphite-200 bg-graphite-0 px-4 py-2.5 text-body leading-relaxed text-graphite-700 shadow-raised">
               <AnswerText text={message.text} citations={message.citations ?? []} onCite={onCite} />
             </div>
             {message.citations && message.citations.length > 0 && (
@@ -279,7 +279,7 @@ function AnswerText({
           key={key++}
           onClick={() => onCite(c)}
           title={`${c.doc_title} — ${c.section}`}
-          className="mx-0.5 inline-flex h-4 min-w-4 items-center justify-center rounded-chip bg-signal-100 px-1 align-super font-mono text-micro font-semibold text-signal-700 transition-colors duration-150 hover:bg-signal-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-signal-500 focus-visible:ring-offset-1 active:scale-95"
+          className="mx-0.5 inline-flex h-5 min-w-5 items-center justify-center rounded-full bg-signal-100 px-1.5 align-super font-mono text-micro font-semibold text-signal-700 transition-colors duration-150 hover:bg-signal-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-signal-500 focus-visible:ring-offset-1 active:scale-95"
         >
           {match[1]}
         </button>,
@@ -385,26 +385,26 @@ function CitationRow({
   return (
     <button
       onClick={() => onCite(c)}
-      className={`flex w-full items-start gap-2 rounded-card border px-2.5 py-1.5 text-left transition-all duration-150 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-signal-500 focus-visible:ring-offset-2 focus-visible:ring-offset-graphite-0 active:scale-[0.99] ${
+      className={`flex w-full items-start gap-2.5 rounded-card border px-3 py-2 text-left transition-all duration-150 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-signal-500 focus-visible:ring-offset-2 focus-visible:ring-offset-graphite-0 active:scale-[0.99] ${
         active
           ? "border-signal-400 bg-signal-50/60"
           : muted
-            ? "border-graphite-200 bg-graphite-50/50 hover:border-graphite-300 hover:bg-graphite-0"
-            : "border-graphite-200 bg-graphite-0 hover:border-graphite-300"
+            ? "border-transparent bg-graphite-50 hover:bg-graphite-100"
+            : "border-graphite-200 bg-graphite-0 shadow-raised hover:shadow-lifted"
       }`}
     >
       <span
-        className={`flex h-4 min-w-4 items-center justify-center rounded-chip px-1 font-mono text-micro font-semibold ${
+        className={`flex h-5 min-w-5 items-center justify-center rounded-full px-1.5 font-mono text-micro font-semibold ${
           muted ? "bg-graphite-100 text-graphite-600" : "bg-signal-100 text-signal-700"
         }`}
       >
         {c.marker}
       </span>
       <span className="min-w-0">
-        <span className="block truncate text-micro font-medium text-graphite-700">
+        <span className="block truncate text-xs font-medium text-graphite-700">
           {c.doc_title} · {c.section}
         </span>
-        <span className="line-clamp-2 text-micro text-graphite-600">{c.snippet}</span>
+        <span className="line-clamp-2 text-xs text-graphite-600">{c.snippet}</span>
       </span>
     </button>
   );

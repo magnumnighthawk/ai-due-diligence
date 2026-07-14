@@ -51,12 +51,12 @@ export default function DocumentViewer({ doc, highlight }: Props) {
     // flex-1 + min-h-0 (not h-full): fills the space *below* the panel's
     // sticky header instead of taking 100% of the panel and overlapping it.
     <div className="flex min-h-0 flex-1 flex-col bg-graphite-0">
-      <div className="flex items-start gap-2.5 border-b border-graphite-200 px-4 py-3">
-        <span className="mt-0.5 flex h-7 w-7 shrink-0 items-center justify-center rounded-chip bg-graphite-100 text-graphite-600">
+      <div className="flex items-start gap-3 border-b border-graphite-200 px-5 py-4">
+        <span className="mt-0.5 flex h-8 w-8 shrink-0 items-center justify-center rounded-card bg-graphite-100 text-graphite-600">
           <FileText className="h-4 w-4" />
         </span>
         <div className="min-w-0">
-          <div className="truncate text-sm font-semibold text-graphite-950">{doc.title}</div>
+          <div className="truncate text-base font-semibold text-graphite-950">{doc.title}</div>
           <a
             href={doc.source_url}
             target="_blank"
@@ -69,8 +69,8 @@ export default function DocumentViewer({ doc, highlight }: Props) {
           </a>
         </div>
       </div>
-      <div className="flex-1 overflow-y-auto px-4 py-3">
-        <pre className="whitespace-pre-wrap break-words font-mono text-micro leading-relaxed text-graphite-700">
+      <div className="flex-1 overflow-y-auto px-5 py-4">
+        <pre className="whitespace-pre-wrap break-words font-mono text-sm leading-relaxed text-graphite-700">
           {before}
           {cited && (
             <mark

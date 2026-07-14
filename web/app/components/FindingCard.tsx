@@ -20,22 +20,22 @@ export default function FindingCard({ finding, position, selected, onSelect, car
     <button
       ref={cardRef}
       onClick={onSelect}
-      className={`w-full rounded-card border px-3 py-2.5 text-left transition-all duration-150 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-signal-500 focus-visible:ring-offset-2 focus-visible:ring-offset-graphite-50 active:scale-[0.99] ${
+      className={`w-full rounded-card border px-4 py-3.5 text-left transition-all duration-150 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-signal-500 focus-visible:ring-offset-2 focus-visible:ring-offset-graphite-50 active:scale-[0.99] ${
         selected
           ? "border-signal-400 bg-signal-50 ring-1 ring-signal-200"
-          : "border-graphite-200 bg-graphite-0 hover:border-graphite-300 hover:shadow-raised"
+          : "border-graphite-200 bg-graphite-0 shadow-raised hover:shadow-lifted"
       }`}
     >
       <div className="flex items-center gap-2">
         <span
-          className={`flex h-5 w-5 shrink-0 items-center justify-center rounded-chip font-mono text-micro font-bold tabular-nums ${
+          className={`flex h-6 w-6 shrink-0 items-center justify-center rounded-full font-mono text-micro font-bold tabular-nums ${
             selected ? "bg-signal-600 text-graphite-0" : "bg-graphite-100 text-graphite-600"
           }`}
         >
           {position}
         </span>
         <Icon className={`${ICON_DEFAULT} shrink-0 text-graphite-400`} />
-        <span className="text-xs font-semibold text-graphite-700">
+        <span className="text-body font-semibold text-graphite-700">
           {finding.kind.replace(/_/g, " ")}
         </span>
         <div className="ml-auto">
@@ -44,15 +44,15 @@ export default function FindingCard({ finding, position, selected, onSelect, car
       </div>
 
       {finding.entity_name && (
-        <div className="mt-1.5 flex items-center gap-1 text-micro text-graphite-600">
+        <div className="mt-2 flex items-center gap-1 text-xs text-graphite-600">
           <Building2 className={ICON_INLINE} />
           {finding.entity_name}
         </div>
       )}
 
-      <p className="mt-1 text-xs leading-snug text-graphite-700">{findingPreview(finding)}</p>
+      <p className="mt-1.5 text-body leading-snug text-graphite-700">{findingPreview(finding)}</p>
 
-      <div className="mt-2 flex min-w-0 items-center gap-2">
+      <div className="mt-2.5 flex min-w-0 items-center gap-2">
         <Badge className="bg-graphite-100 text-graphite-600">{finding.workstream}</Badge>
         <span className="min-w-0 truncate font-mono text-micro text-graphite-600">
           {finding.doc_id} · {finding.char_start}–{finding.char_end}
