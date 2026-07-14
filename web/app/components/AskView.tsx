@@ -11,6 +11,7 @@ import {
 } from "../lib/api";
 import DocumentViewer from "./DocumentViewer";
 import { PanelHeader, Empty } from "./panels";
+import { ICON_DEFAULT, ICON_INLINE } from "./icons";
 
 type Message = {
   id: number;
@@ -88,21 +89,29 @@ export default function AskView({ onError }: { onError: (msg: string) => void })
   }
 
   return (
-    <div className="grid min-h-0 flex-1 grid-cols-1 overflow-hidden md:grid-cols-[minmax(420px,1fr)_minmax(380px,1fr)]">
+    // flex-col on mobile/tablet (source panel stacks below, always in the DOM)
+    // -> grid at lg: (side-by-side), mirroring RegisterView's stacking pattern.
+    // lg: (not md:) because the two columns' combined min-width (800px)
+    // exceeds a 768px tablet viewport, which clips the panel under overflow-hidden.
+    // Previously the source panel was `hidden md:flex`: below 768px it was
+    // removed from the DOM entirely, so a mobile user could click a citation
+    // (which did fetch the doc) but could never see the highlighted span --
+    // a broken feature, not graceful degradation.
+    <div className="flex min-h-0 flex-1 flex-col overflow-hidden lg:grid lg:grid-cols-[minmax(420px,1fr)_minmax(380px,1fr)]">
       {/* Conversation + composer */}
-      <section className="flex min-h-0 flex-col border-r border-slate-200 bg-slate-50/50">
-        <PanelHeader icon={<Sparkles className="h-3.5 w-3.5" />}>Ask the deal room</PanelHeader>
+      <section className="flex min-h-0 flex-col border-r border-graphite-200 bg-graphite-50/50">
+        <PanelHeader icon={<Sparkles className={ICON_DEFAULT} />}>Ask the deal room</PanelHeader>
 
         <div ref={threadRef} className="flex-1 overflow-y-auto px-4 py-4">
           {messages.length === 0 ? (
             <div className="mx-auto max-w-md pt-8 text-center">
-              <div className="mx-auto mb-3 flex h-11 w-11 items-center justify-center rounded-xl bg-indigo-100 text-indigo-600">
+              <div className="mx-auto mb-3 flex h-11 w-11 items-center justify-center rounded-card bg-signal-100 text-signal-600">
                 <Sparkles className="h-5 w-5" />
               </div>
-              <h2 className="text-sm font-semibold text-slate-800">
+              <h2 className="text-sm font-semibold text-graphite-800">
                 Ask a question, get a cited answer
               </h2>
-              <p className="mt-1 text-xs text-slate-500">
+              <p className="mt-1 text-xs text-graphite-600">
                 Answers are grounded only in the retrieved filings. When the corpus can&apos;t answer,
                 the assistant says so rather than guessing.
               </p>
@@ -111,7 +120,7 @@ export default function AskView({ onError }: { onError: (msg: string) => void })
                   <button
                     key={ex}
                     onClick={() => ask(ex)}
-                    className="w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-left text-xs text-slate-600 transition-colors hover:border-indigo-300 hover:bg-indigo-50/50"
+                    className="w-full rounded-card border border-graphite-200 bg-graphite-0 px-3 py-2 text-left text-xs text-graphite-700 transition-all duration-150 hover:border-signal-300 hover:bg-signal-50/50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-signal-500 focus-visible:ring-offset-2 focus-visible:ring-offset-graphite-50 active:scale-[0.99]"
                   >
                     {ex}
                   </button>
@@ -132,9 +141,9 @@ export default function AskView({ onError }: { onError: (msg: string) => void })
             e.preventDefault();
             ask(input);
           }}
-          className="border-t border-slate-200 bg-white p-3"
+          className="border-t border-graphite-200 bg-graphite-0 p-3"
         >
-          <div className="flex items-end gap-2 rounded-xl border border-slate-300 bg-white px-3 py-2 focus-within:border-indigo-400 focus-within:ring-1 focus-within:ring-indigo-200">
+          <div className="flex items-end gap-2 rounded-card border border-graphite-300 bg-graphite-0 px-3 py-2 focus-within:border-signal-400 focus-within:ring-2 focus-within:ring-signal-200">
             <textarea
               value={input}
               onChange={(e) => setInput(e.target.value)}
@@ -146,23 +155,28 @@ export default function AskView({ onError }: { onError: (msg: string) => void })
               }}
               rows={1}
               placeholder="Ask about concentration, contracts, personnel…"
-              className="max-h-32 flex-1 resize-none bg-transparent text-sm text-slate-800 placeholder:text-slate-400 focus:outline-none"
+              // Visual focus is delegated to the wrapping div's focus-within
+              // ring above (which does fire, since :focus-within triggers
+              // from a focused descendant) -- so a bare focus:outline-none
+              // here is intentional, not a missed focus style.
+              className="max-h-32 flex-1 resize-none bg-transparent text-sm text-graphite-800 placeholder:text-graphite-500 focus:outline-none"
             />
             <button
               type="submit"
               disabled={busy || !input.trim()}
-              className="flex h-8 items-center gap-1 rounded-lg bg-indigo-600 px-3 text-xs font-semibold text-white transition-colors hover:bg-indigo-700 disabled:cursor-not-allowed disabled:bg-slate-200 disabled:text-slate-400"
+              className="flex h-8 items-center gap-1 rounded-card bg-signal-600 px-3 text-xs font-semibold text-graphite-0 transition-all duration-150 hover:bg-signal-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-signal-500 focus-visible:ring-offset-2 active:scale-[0.98] disabled:cursor-not-allowed disabled:bg-graphite-200 disabled:text-graphite-500 disabled:active:scale-100"
             >
               Ask
-              <CornerDownLeft className="h-3.5 w-3.5" />
+              <CornerDownLeft className={ICON_DEFAULT} />
             </button>
           </div>
         </form>
       </section>
 
-      {/* Source panel */}
-      <section className="hidden min-h-0 flex-col overflow-hidden bg-white md:flex">
-        <PanelHeader icon={<FileText className="h-3.5 w-3.5" />}>Source document</PanelHeader>
+      {/* Source panel -- always rendered (see mobile-stacking note above),
+          not conditionally hidden below md. */}
+      <section className="flex min-h-0 flex-col overflow-hidden bg-graphite-0">
+        <PanelHeader icon={<FileText className={ICON_DEFAULT} />}>Source document</PanelHeader>
         {!doc || !activeCitation ? (
           <Empty>Click a citation to view its cited span in the source.</Empty>
         ) : (
@@ -189,11 +203,11 @@ function MessageBubble({
     return (
       <div className="flex justify-end">
         <div className="flex max-w-[85%] items-start gap-2">
-          <div className="rounded-2xl rounded-tr-sm bg-indigo-600 px-3.5 py-2 text-sm text-white">
+          <div className="rounded-bubble rounded-tr-sm bg-signal-600 px-3.5 py-2 text-sm text-graphite-0">
             {message.text}
           </div>
-          <span className="mt-0.5 flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-slate-200 text-slate-500">
-            <User className="h-3.5 w-3.5" />
+          <span className="mt-0.5 flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-graphite-200 text-graphite-600">
+            <User className={ICON_DEFAULT} />
           </span>
         </div>
       </div>
@@ -202,25 +216,25 @@ function MessageBubble({
 
   return (
     <div className="flex items-start gap-2">
-      <span className="mt-0.5 flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-indigo-100 text-indigo-600">
-        <Sparkles className="h-3.5 w-3.5" />
+      <span className="mt-0.5 flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-signal-100 text-signal-600">
+        <Sparkles className={ICON_DEFAULT} />
       </span>
       <div className="min-w-0 flex-1">
         {message.loading ? (
-          <div className="flex items-center gap-1.5 py-1 text-sm text-slate-400">
-            <Dot /> <Dot delay="150ms" /> <Dot delay="300ms" />
+          <div className="flex items-center gap-1.5 py-1 text-sm text-graphite-600">
+            <span className="h-1.5 w-1.5 animate-pulse rounded-full bg-signal-500 motion-reduce:animate-none" />
             <span className="ml-1 text-xs">searching the filings…</span>
           </div>
         ) : message.abstained ? (
-          <div className="rounded-2xl rounded-tl-sm border border-amber-200 bg-amber-50 px-3.5 py-2 text-sm text-amber-800">
+          <div className="rounded-bubble rounded-tl-sm border border-amber-200 bg-amber-50 px-3.5 py-2 text-sm text-amber-800">
             {message.text}
-            <div className="mt-1 text-[11px] font-medium text-amber-600">
+            <div className="mt-1 text-micro font-medium text-amber-600">
               No sufficient evidence in the corpus — abstained rather than guessing.
             </div>
           </div>
         ) : (
           <>
-            <div className="rounded-2xl rounded-tl-sm border border-slate-200 bg-white px-3.5 py-2 text-sm leading-relaxed text-slate-700">
+            <div className="rounded-bubble rounded-tl-sm border border-graphite-200 bg-graphite-0 px-3.5 py-2 text-sm leading-relaxed text-graphite-700">
               <AnswerText text={message.text} citations={message.citations ?? []} onCite={onCite} />
             </div>
             {message.citations && message.citations.length > 0 && (
@@ -265,7 +279,7 @@ function AnswerText({
           key={key++}
           onClick={() => onCite(c)}
           title={`${c.doc_title} — ${c.section}`}
-          className="mx-0.5 inline-flex h-4 min-w-4 items-center justify-center rounded bg-indigo-100 px-1 align-super text-[10px] font-semibold text-indigo-700 hover:bg-indigo-200"
+          className="mx-0.5 inline-flex h-4 min-w-4 items-center justify-center rounded-chip bg-signal-100 px-1 align-super font-mono text-micro font-semibold text-signal-700 transition-colors duration-150 hover:bg-signal-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-signal-500 focus-visible:ring-offset-1 active:scale-95"
         >
           {match[1]}
         </button>,
@@ -308,7 +322,7 @@ function CitationList({
       {cited.length > 0 && (
         <CitationGroup
           label="Cited"
-          icon={<Quote className="h-3 w-3" />}
+          icon={<Quote className={ICON_INLINE} />}
           citations={cited}
           onCite={onCite}
           activeCitation={activeCitation}
@@ -316,8 +330,8 @@ function CitationList({
       )}
       {related.length > 0 && (
         <details className="group" open={cited.length === 0}>
-          <summary className="flex cursor-pointer list-none items-center gap-1 text-[10px] font-semibold uppercase tracking-wide text-slate-400 hover:text-slate-500">
-            <ChevronRight className="h-3 w-3 transition-transform group-open:rotate-90" />
+          <summary className="flex cursor-pointer list-none items-center gap-1 rounded-chip text-micro font-semibold uppercase tracking-wide text-graphite-600 transition-colors duration-150 hover:text-graphite-800 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-signal-500 focus-visible:ring-offset-2">
+            <ChevronRight className={`${ICON_INLINE} transition-transform group-open:rotate-90`} />
             Related · {related.length}
           </summary>
           <div className="mt-1.5 space-y-1.5">
@@ -346,7 +360,7 @@ function CitationGroup({
 }) {
   return (
     <div className="space-y-1.5">
-      <div className="flex items-center gap-1 text-[10px] font-semibold uppercase tracking-wide text-slate-400">
+      <div className="flex items-center gap-1 text-micro font-semibold uppercase tracking-wide text-graphite-600">
         {icon} {label}
       </div>
       {citations.map((c) => (
@@ -371,36 +385,27 @@ function CitationRow({
   return (
     <button
       onClick={() => onCite(c)}
-      className={`flex w-full items-start gap-2 rounded-lg border px-2.5 py-1.5 text-left transition-colors ${
+      className={`flex w-full items-start gap-2 rounded-card border px-2.5 py-1.5 text-left transition-all duration-150 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-signal-500 focus-visible:ring-offset-2 focus-visible:ring-offset-graphite-0 active:scale-[0.99] ${
         active
-          ? "border-indigo-400 bg-indigo-50/60"
+          ? "border-signal-400 bg-signal-50/60"
           : muted
-            ? "border-slate-200 bg-slate-50/50 hover:border-slate-300 hover:bg-white"
-            : "border-slate-200 bg-white hover:border-slate-300"
+            ? "border-graphite-200 bg-graphite-50/50 hover:border-graphite-300 hover:bg-graphite-0"
+            : "border-graphite-200 bg-graphite-0 hover:border-graphite-300"
       }`}
     >
       <span
-        className={`flex h-4 min-w-4 items-center justify-center rounded px-1 text-[10px] font-semibold ${
-          muted ? "bg-slate-100 text-slate-400" : "bg-indigo-100 text-indigo-700"
+        className={`flex h-4 min-w-4 items-center justify-center rounded-chip px-1 font-mono text-micro font-semibold ${
+          muted ? "bg-graphite-100 text-graphite-600" : "bg-signal-100 text-signal-700"
         }`}
       >
         {c.marker}
       </span>
       <span className="min-w-0">
-        <span className="block truncate text-[11px] font-medium text-slate-600">
+        <span className="block truncate text-micro font-medium text-graphite-700">
           {c.doc_title} · {c.section}
         </span>
-        <span className="line-clamp-2 text-[11px] text-slate-400">{c.snippet}</span>
+        <span className="line-clamp-2 text-micro text-graphite-600">{c.snippet}</span>
       </span>
     </button>
-  );
-}
-
-function Dot({ delay = "0ms" }: { delay?: string }) {
-  return (
-    <span
-      className="h-1.5 w-1.5 animate-bounce rounded-full bg-slate-300"
-      style={{ animationDelay: delay }}
-    />
   );
 }

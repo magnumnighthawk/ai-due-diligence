@@ -16,6 +16,7 @@ import FindingCard from "./FindingCard";
 import Rationale from "./Rationale";
 import { ReviewBadge, SeverityBadge, SourceBadge } from "./Badge";
 import { PanelHeader, Empty } from "./panels";
+import { ICON_DEFAULT, ICON_INLINE } from "./icons";
 
 export default function RegisterView({ onError }: { onError: (msg: string) => void }) {
   const [risks, setRisks] = useState<RiskSummary[]>([]);
@@ -49,10 +50,10 @@ export default function RegisterView({ onError }: { onError: (msg: string) => vo
   }
 
   return (
-    <div className="grid min-h-0 flex-1 grid-cols-1 overflow-hidden md:grid-cols-[minmax(280px,1fr)_minmax(340px,1.25fr)_minmax(380px,1.6fr)]">
+    <div className="grid min-h-0 flex-1 grid-cols-1 overflow-hidden lg:grid-cols-[minmax(280px,1fr)_minmax(340px,1.25fr)_minmax(380px,1.6fr)]">
       {/* Panel 1: risk register */}
-      <section className="flex min-h-0 flex-col overflow-y-auto border-r border-slate-200 bg-white">
-        <PanelHeader icon={<AlertTriangle className="h-3.5 w-3.5" />}>
+      <section className="flex min-h-0 flex-col overflow-y-auto border-r border-graphite-200 bg-graphite-0">
+        <PanelHeader icon={<AlertTriangle className={ICON_DEFAULT} />}>
           Risk register · {risks.length}
         </PanelHeader>
         <ul className="p-2">
@@ -60,10 +61,10 @@ export default function RegisterView({ onError }: { onError: (msg: string) => vo
             <li key={r.id}>
               <button
                 onClick={() => selectRisk(r.id)}
-                className={`mb-1.5 w-full rounded-lg border px-3 py-2.5 text-left transition-all ${
+                className={`mb-1.5 w-full rounded-card border px-3 py-2.5 text-left transition-all duration-150 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-signal-500 focus-visible:ring-offset-2 focus-visible:ring-offset-graphite-0 active:scale-[0.99] ${
                   selectedRisk?.id === r.id
-                    ? "border-indigo-400 bg-indigo-50/60 ring-1 ring-indigo-200"
-                    : "border-slate-200 bg-white hover:border-slate-300 hover:shadow-sm"
+                    ? "border-signal-400 bg-signal-50 ring-1 ring-signal-200"
+                    : "border-graphite-200 bg-graphite-0 hover:border-graphite-300 hover:shadow-raised"
                 }`}
               >
                 <div className="mb-1.5 flex flex-wrap items-center gap-1.5">
@@ -71,9 +72,9 @@ export default function RegisterView({ onError }: { onError: (msg: string) => vo
                   <SourceBadge source={r.source} />
                   {r.review_status === "needs_review" && <ReviewBadge />}
                 </div>
-                <div className="text-[13px] font-medium leading-snug text-slate-800">{r.title}</div>
-                <div className="mt-1.5 flex items-center gap-1 text-[11px] text-slate-400">
-                  <ListTree className="h-3 w-3" />
+                <div className="text-body font-medium leading-snug text-graphite-800">{r.title}</div>
+                <div className="mt-1.5 flex items-center gap-1 text-micro text-graphite-600">
+                  <ListTree className={ICON_INLINE} />
                   {r.finding_count} linked findings
                 </div>
               </button>
@@ -83,20 +84,20 @@ export default function RegisterView({ onError }: { onError: (msg: string) => vo
       </section>
 
       {/* Panel 2: rationale + findings */}
-      <section className="flex min-h-0 flex-col overflow-y-auto border-r border-slate-200 bg-slate-50/50">
-        <PanelHeader icon={<ListTree className="h-3.5 w-3.5" />}>Rationale & findings</PanelHeader>
+      <section className="flex min-h-0 flex-col overflow-y-auto border-r border-graphite-200 bg-graphite-50/50">
+        <PanelHeader icon={<ListTree className={ICON_DEFAULT} />}>Rationale & findings</PanelHeader>
         {!selectedRisk ? (
           <Empty>Select a risk to see its rationale and linked findings.</Empty>
         ) : (
           <div className="px-4 py-3">
-            <div className="mb-3 rounded-lg border border-slate-200 bg-white p-3">
+            <div className="mb-3 rounded-card border border-graphite-200 bg-graphite-0 p-3">
               <Rationale
                 rationale={selectedRisk.rationale}
                 findings={selectedRisk.findings}
                 onSelectFinding={selectFinding}
                 activeFindingId={selectedFinding?.id ?? null}
               />
-              <p className="mt-2 text-[10px] uppercase tracking-wide text-slate-400">
+              <p className="mt-2 text-micro uppercase tracking-wide text-graphite-600">
                 Numbered references map to the findings below — click to trace the source.
               </p>
             </div>
@@ -118,8 +119,8 @@ export default function RegisterView({ onError }: { onError: (msg: string) => vo
       </section>
 
       {/* Panel 3: source document */}
-      <section className="flex min-h-0 flex-col overflow-hidden bg-white">
-        <PanelHeader icon={<FileText className="h-3.5 w-3.5" />}>Source document</PanelHeader>
+      <section className="flex min-h-0 flex-col overflow-hidden bg-graphite-0">
+        <PanelHeader icon={<FileText className={ICON_DEFAULT} />}>Source document</PanelHeader>
         {!doc || !selectedFinding ? (
           <Empty>Select a finding to view its cited span in the source.</Empty>
         ) : (

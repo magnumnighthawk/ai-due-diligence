@@ -4,7 +4,7 @@ import { Building2 } from "lucide-react";
 import type { FindingDetail } from "../lib/api";
 import { Badge } from "./Badge";
 import { ConfidenceBadge } from "./ConfidenceBadge";
-import { workstreamIcon } from "./icons";
+import { workstreamIcon, ICON_DEFAULT, ICON_INLINE } from "./icons";
 
 type Props = {
   finding: FindingDetail;
@@ -20,22 +20,22 @@ export default function FindingCard({ finding, position, selected, onSelect, car
     <button
       ref={cardRef}
       onClick={onSelect}
-      className={`w-full rounded-lg border px-3 py-2.5 text-left transition-all ${
+      className={`w-full rounded-card border px-3 py-2.5 text-left transition-all duration-150 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-signal-500 focus-visible:ring-offset-2 focus-visible:ring-offset-graphite-50 active:scale-[0.99] ${
         selected
-          ? "border-indigo-400 bg-indigo-50/60 ring-1 ring-indigo-200"
-          : "border-slate-200 bg-white hover:border-slate-300 hover:shadow-sm"
+          ? "border-signal-400 bg-signal-50 ring-1 ring-signal-200"
+          : "border-graphite-200 bg-graphite-0 hover:border-graphite-300 hover:shadow-raised"
       }`}
     >
       <div className="flex items-center gap-2">
         <span
-          className={`flex h-5 w-5 shrink-0 items-center justify-center rounded-md text-[11px] font-bold tabular-nums ${
-            selected ? "bg-indigo-600 text-white" : "bg-slate-100 text-slate-500"
+          className={`flex h-5 w-5 shrink-0 items-center justify-center rounded-chip font-mono text-micro font-bold tabular-nums ${
+            selected ? "bg-signal-600 text-graphite-0" : "bg-graphite-100 text-graphite-600"
           }`}
         >
           {position}
         </span>
-        <Icon className="h-3.5 w-3.5 shrink-0 text-slate-400" />
-        <span className="text-xs font-semibold text-slate-700">
+        <Icon className={`${ICON_DEFAULT} shrink-0 text-graphite-400`} />
+        <span className="text-xs font-semibold text-graphite-700">
           {finding.kind.replace(/_/g, " ")}
         </span>
         <div className="ml-auto">
@@ -44,17 +44,17 @@ export default function FindingCard({ finding, position, selected, onSelect, car
       </div>
 
       {finding.entity_name && (
-        <div className="mt-1.5 flex items-center gap-1 text-[11px] text-slate-500">
-          <Building2 className="h-3 w-3" />
+        <div className="mt-1.5 flex items-center gap-1 text-micro text-graphite-600">
+          <Building2 className={ICON_INLINE} />
           {finding.entity_name}
         </div>
       )}
 
-      <p className="mt-1 text-xs leading-snug text-slate-600">{findingPreview(finding)}</p>
+      <p className="mt-1 text-xs leading-snug text-graphite-700">{findingPreview(finding)}</p>
 
-      <div className="mt-2 flex items-center gap-2">
-        <Badge className="bg-slate-100 text-slate-500">{finding.workstream}</Badge>
-        <span className="font-mono text-[10px] text-slate-400">
+      <div className="mt-2 flex min-w-0 items-center gap-2">
+        <Badge className="bg-graphite-100 text-graphite-600">{finding.workstream}</Badge>
+        <span className="min-w-0 truncate font-mono text-micro text-graphite-600">
           {finding.doc_id} · {finding.char_start}–{finding.char_end}
         </span>
       </div>

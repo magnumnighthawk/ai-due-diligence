@@ -49,10 +49,10 @@ export default function Rationale({
           type="button"
           onClick={() => onSelectFinding(finding)}
           title={`Finding ${position}: ${finding.kind}`}
-          className={`mx-0.5 inline-flex h-4 min-w-4 items-center justify-center rounded px-1 align-baseline text-[11px] font-semibold tabular-nums transition-colors ${
+          className={`mx-0.5 inline-flex h-4 min-w-4 items-center justify-center rounded-chip px-1 align-baseline font-mono text-micro font-semibold tabular-nums transition-colors duration-150 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-signal-500 focus-visible:ring-offset-1 active:scale-95 ${
             active
-              ? "bg-indigo-600 text-white"
-              : "bg-indigo-100 text-indigo-700 hover:bg-indigo-200"
+              ? "bg-signal-600 text-graphite-0"
+              : "bg-signal-100 text-signal-700 hover:bg-signal-200"
           }`}
         >
           #{position}
@@ -69,5 +69,5 @@ export default function Rationale({
     nodes.push(<Fragment key={key++}>{rationale.slice(lastIndex)}</Fragment>);
   }
 
-  return <p className="text-[13px] leading-relaxed text-slate-600">{nodes}</p>;
+  return <p className="text-body leading-relaxed text-graphite-700">{nodes}</p>;
 }

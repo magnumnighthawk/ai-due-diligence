@@ -27,7 +27,12 @@ export default function RootLayout({
       lang="en"
       className={`${geistSans.variable} ${geistMono.variable} h-full`}
     >
-      <body className="min-h-full flex flex-col font-sans text-slate-900">{children}</body>
+      {/* background/color/font-family are set once, in globals.css's `body {}`
+          rule -- deliberately not duplicated here as utility classes, since a
+          class selector (e.g. text-graphite-950) would win over that plain
+          element-selector rule on specificity and become a second, higher-
+          precedence source of truth for the same value. */}
+      <body className="min-h-full flex flex-col">{children}</body>
     </html>
   );
 }
