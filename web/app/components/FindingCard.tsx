@@ -62,7 +62,7 @@ export default function FindingCard({ finding, position, selected, onSelect, car
   );
 }
 
-export function findingPreview(f: FindingDetail): string {
+export function findingPreview(f: { kind: string; payload: Record<string, unknown> }): string {
   const p = f.payload;
   if (f.kind === "customer_concentration") {
     const pct = p.pct_revenue ?? p.pct_revenue_threshold ?? "?";

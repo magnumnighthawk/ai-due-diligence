@@ -33,9 +33,18 @@ const SEVERITY_DOT: Record<string, string> = {
   Low: "bg-graphite-400",
 };
 
+const SEVERITY_TOOLTIP =
+  "Risk severity — how material this risk is to the deal, not how likely it is. " +
+  "Scaled to the deal's revenue band (revenue-at-risk) and escalated by compounding " +
+  "certain contract factors: assignment/change-of-control rights, multiple termination " +
+  "triggers, and a near-term expiry. High / Medium / Low.";
+
 export function SeverityBadge({ severity }: { severity: string }) {
   return (
-    <Badge className={SEVERITY_STYLES[severity] ?? SEVERITY_STYLES.Low}>
+    <Badge
+      title={SEVERITY_TOOLTIP}
+      className={`cursor-help ${SEVERITY_STYLES[severity] ?? SEVERITY_STYLES.Low}`}
+    >
       <span className={`h-1.5 w-1.5 rounded-full ${SEVERITY_DOT[severity] ?? SEVERITY_DOT.Low}`} />
       {severity}
     </Badge>

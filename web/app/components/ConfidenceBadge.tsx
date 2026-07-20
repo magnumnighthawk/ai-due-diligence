@@ -10,12 +10,17 @@ const CONFIDENCE_STYLES = {
   low: "bg-amber-100 text-amber-800",
 };
 
+const CONFIDENCE_TOOLTIP =
+  "Extraction confidence — how certain the model is it read this finding correctly " +
+  "from the source text. An exact stated figure scores highest; a threshold-only or " +
+  "inferred value scores lower. This is not the probability the risk will occur.";
+
 export function ConfidenceBadge({ confidence }: { confidence: number | null }) {
   if (confidence == null) return null;
   const pct = Math.round(confidence * 100);
   const style = confidence >= 0.9 ? CONFIDENCE_STYLES.high : CONFIDENCE_STYLES.low;
   return (
-    <Badge className={style} title="Extractor confidence (coarse heuristic)">
+    <Badge className={`cursor-help ${style}`} title={CONFIDENCE_TOOLTIP}>
       <Gauge className={ICON_INLINE} />
       <span className="font-mono normal-case tracking-normal">{pct}%</span>
     </Badge>

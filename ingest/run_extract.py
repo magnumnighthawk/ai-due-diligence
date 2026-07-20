@@ -16,6 +16,7 @@ from lib.extract_findings import (
     extract_financial_findings,
     extract_operational_findings,
 )
+from lib.timing import stage_timer
 
 load_dotenv()
 
@@ -27,14 +28,18 @@ def main():
             cur.execute("DELETE FROM findings")
         conn.commit()
 
-        fin_ids = extract_financial_findings(conn, "udc-10k-fy2022")
-        print(f"financial: {len(fin_ids)} findings")
+        with stage_timer(conn, "extract", doc_count=4) as t:
+            fin_ids = extract_financial_findings(conn, "udc-10k-fy2022")
+            print(f"financial: {len(fin_ids)} findings")
 
-        com_ids = extract_commercial_findings(conn, "udc-ex10.25-samsung-license")
-        print(f"commercial: {len(com_ids)} findings")
+            com_ids = extract_commercial_findings(conn, "udc-ex10.25-samsung-license")
+            print(f"commercial: {len(com_ids)} findings")
 
-        ops_ids = extract_operational_findings(conn, ["udc-8k-2022-08-04", "udc-8k-2022-08-04-ex99.1"])
-        print(f"operational: {len(ops_ids)} findings")
+            ops_ids = extract_operational_findings(conn, ["udc-8k-2022-08-04", "udc-8k-2022-08-04-ex99.1"])
+            print(f"operational: {len(ops_ids)} findings")
+
+            t.item_count = len(fin_ids) + len(com_ids) + len(ops_ids)
+            t.detail = {"financial": len(fin_ids), "commercial": len(com_ids), "operational": len(ops_ids)}
     finally:
         conn.close()
 

@@ -1,3 +1,4 @@
+from datetime import datetime
 from typing import Any
 
 from fastapi import APIRouter, HTTPException
@@ -29,6 +30,9 @@ class FindingDetail(BaseModel):
     char_end: int
     confidence: float | None
     review_status: str
+    reviewed_by: str | None = None
+    reviewed_at: datetime | None = None
+    review_note: str | None = None
 
 
 class RiskDetail(BaseModel):
@@ -38,6 +42,9 @@ class RiskDetail(BaseModel):
     rationale: str
     source: str
     review_status: str
+    reviewed_by: str | None = None
+    reviewed_at: datetime | None = None
+    review_note: str | None = None
     findings: list[FindingDetail]
 
 
@@ -83,7 +90,11 @@ def get_risk(risk_id: int):
     try:
         with conn.cursor() as cur:
             cur.execute(
-                "SELECT id, title, severity, rationale, source, review_status, finding_ids FROM risks WHERE id = %s",
+                """
+                SELECT id, title, severity, rationale, source, review_status, finding_ids,
+                       reviewed_by, reviewed_at, review_note
+                FROM risks WHERE id = %s
+                """,
                 (risk_id,),
             )
             risk = cur.fetchone()
@@ -96,7 +107,8 @@ def get_risk(risk_id: int):
                 cur.execute(
                     """
                     SELECT f.id, f.workstream, f.kind, f.payload, e.canonical_name,
-                           f.doc_id, d.title, f.char_start, f.char_end, f.confidence, f.review_status
+                           f.doc_id, d.title, f.char_start, f.char_end, f.confidence, f.review_status,
+                           f.reviewed_by, f.reviewed_at, f.review_note
                     FROM findings f
                     JOIN documents d ON d.id = f.doc_id
                     LEFT JOIN entities e ON e.id = f.entity_id
@@ -110,6 +122,7 @@ def get_risk(risk_id: int):
                         id=fr[0], workstream=fr[1], kind=fr[2], payload=fr[3], entity_name=fr[4],
                         doc_id=fr[5], doc_title=fr[6], char_start=fr[7], char_end=fr[8],
                         confidence=fr[9], review_status=fr[10],
+                        reviewed_by=fr[11], reviewed_at=fr[12], review_note=fr[13],
                     )
                     for fr in cur.fetchall()
                 ]
@@ -118,7 +131,9 @@ def get_risk(risk_id: int):
 
     return RiskDetail(
         id=risk[0], title=risk[1], severity=risk[2], rationale=risk[3],
-        source=risk[4], review_status=risk[5], findings=findings,
+        source=risk[4], review_status=risk[5],
+        reviewed_by=risk[7], reviewed_at=risk[8], review_note=risk[9],
+        findings=findings,
     )
 
 

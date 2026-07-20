@@ -13,6 +13,7 @@ sys.path.insert(0, str(pathlib.Path(__file__).parent))
 
 from lib.db import get_conn
 from lib.entity_resolution import resolve_entities
+from lib.timing import stage_timer
 
 load_dotenv()
 
@@ -24,7 +25,10 @@ def main():
             cur.execute("DELETE FROM entities")
         conn.commit()
 
-        stats = resolve_entities(conn)
+        with stage_timer(conn, "resolve") as t:
+            stats = resolve_entities(conn)
+            t.item_count = stats.get("linked", 0) + stats.get("created", 0)
+            t.detail = stats
         print(stats)
     finally:
         conn.close()

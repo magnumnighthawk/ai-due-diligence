@@ -14,6 +14,7 @@ from lib.chunk import chunk_lines
 from lib.db import get_conn
 from lib.embed import embed_texts
 from lib.extract import html_to_lines, lines_to_text
+from lib.timing import stage_timer
 
 load_dotenv()
 
@@ -92,9 +93,13 @@ def ingest_document(conn, doc: dict) -> int:
 def main():
     conn = get_conn()
     try:
-        for doc in DOCS:
-            n = ingest_document(conn, doc)
-            print(f"{doc['id']}: {n} chunks")
+        with stage_timer(conn, "ingest", doc_count=len(DOCS)) as t:
+            total_chunks = 0
+            for doc in DOCS:
+                n = ingest_document(conn, doc)
+                total_chunks += n
+                print(f"{doc['id']}: {n} chunks")
+            t.item_count = total_chunks
     finally:
         conn.close()
 

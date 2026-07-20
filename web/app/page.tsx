@@ -1,18 +1,20 @@
 "use client";
 
 import { useCallback, useState } from "react";
-import { LayoutGrid, MessagesSquare, Radar, X } from "lucide-react";
+import { LayoutGrid, MessagesSquare, Radar, ShieldQuestion, X } from "lucide-react";
 import RegisterView from "./components/RegisterView";
 import AskView from "./components/AskView";
+import ReviewQueueView from "./components/ReviewQueueView";
 import { Badge } from "./components/Badge";
 import { ICON_DEFAULT } from "./components/icons";
+import { CURRENT_USER, userInitials } from "./lib/user";
 
 // This surrogate deal room is fixed to a single target company for the
 // duration of the engagement; surfaced in the header so it's always clear
 // which deal room is in view.
 const DEAL_CLIENT = "Universal Display Corporation";
 
-type View = "register" | "ask";
+type View = "register" | "ask" | "review";
 
 export default function Home() {
   const [view, setView] = useState<View>("register");
@@ -43,14 +45,31 @@ export default function Home() {
           </div>
         </div>
 
-        <nav className="ml-auto flex items-center gap-1 rounded-full bg-graphite-100 p-1">
-          <TabButton active={view === "register"} onClick={() => setView("register")} icon={<LayoutGrid className={ICON_DEFAULT} />} label="Risk Register">
-            Risk Register
-          </TabButton>
-          <TabButton active={view === "ask"} onClick={() => setView("ask")} icon={<MessagesSquare className={ICON_DEFAULT} />} label="Ask the Deal Room">
-            Ask the Deal Room
-          </TabButton>
-        </nav>
+        <div className="ml-auto flex items-center gap-3">
+          <nav className="flex items-center gap-1 rounded-full bg-graphite-100 p-1">
+            <TabButton active={view === "register"} onClick={() => setView("register")} icon={<LayoutGrid className={ICON_DEFAULT} />} label="Risk Register">
+              Risk Register
+            </TabButton>
+            <TabButton active={view === "ask"} onClick={() => setView("ask")} icon={<MessagesSquare className={ICON_DEFAULT} />} label="Ask the Deal Room">
+              Ask the Deal Room
+            </TabButton>
+            <TabButton active={view === "review"} onClick={() => setView("review")} icon={<ShieldQuestion className={ICON_DEFAULT} />} label="Review Queue">
+              Review Queue
+            </TabButton>
+          </nav>
+
+          {/* Operator identity. Placeholder for a real authenticated session --
+              this is the "who" attributed to reviews and query-audit entries. */}
+          <div
+            className="flex items-center gap-2"
+            title={`Signed in as ${CURRENT_USER} (placeholder identity — real auth/SSO would populate this)`}
+          >
+            <span className="flex h-8 w-8 items-center justify-center rounded-full bg-signal-100 font-mono text-micro font-semibold text-signal-700">
+              {userInitials(CURRENT_USER)}
+            </span>
+            <span className="hidden font-mono text-micro text-graphite-600 lg:inline">{CURRENT_USER}</span>
+          </div>
+        </div>
       </header>
 
       {error && (
@@ -68,7 +87,9 @@ export default function Home() {
         </div>
       )}
 
-      {view === "register" ? <RegisterView onError={onError} /> : <AskView onError={onError} />}
+      {view === "register" && <RegisterView onError={onError} />}
+      {view === "ask" && <AskView onError={onError} />}
+      {view === "review" && <ReviewQueueView onError={onError} />}
     </main>
   );
 }

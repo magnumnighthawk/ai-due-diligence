@@ -9,9 +9,17 @@ from typing import Any
 
 import psycopg
 
+from .deal_context import DEAL
+
 ASSIGNMENT_CLAUSE_TYPES = {"assignment", "change_of_control"}
 SENIOR_FINANCE_ROLE_RE = re.compile(r"chief financial officer|\bcfo\b", re.IGNORECASE)
 PCT_RE = re.compile(r"(\d+(?:\.\d+)?)")
+
+_SEV_ORDER = {"Low": 0, "Medium": 1, "High": 2}
+
+
+def _max_sev(a: str, b: str) -> str:
+    return a if _SEV_ORDER[a] >= _SEV_ORDER[b] else b
 
 
 @dataclass
@@ -89,16 +97,23 @@ def concentration_x_assignment_rule(conn: psycopg.Connection) -> list[int]:
             continue
 
         max_pct = _max_disclosed_pct(concentration)
-        # High severity from an exact disclosed number >=20%, OR from the
-        # compounding of several independently-certain contract factors --
-        # assignment/change-of-control rights, 2+ distinct termination
-        # triggers, AND a fixed expiry -- even when the concentration figure
-        # itself is only a threshold. This deliberately doesn't require
-        # guessing which anonymized concentration-table row belongs to this
-        # entity (see the agent tier for that inference, which its own
-        # groundedness check may reject as too weak to rely on).
+        # Severity is materiality-scaled to THIS deal (see deal_context): the
+        # revenue-at-risk (concentration% x target revenue) is compared to the
+        # deal's own materiality bands, not a hardcoded percentage. The
+        # cross-workstream combination is at minimum a Medium concern; it is
+        # escalated to High either when the concentration is itself materially
+        # large for this deal, OR from the compounding of several
+        # independently-certain contract factors -- assignment/change-of-control
+        # rights, 2+ distinct termination triggers, AND a fixed expiry -- even
+        # when the concentration figure is only a threshold. This deliberately
+        # doesn't require guessing which anonymized concentration-table row
+        # belongs to this entity (see the agent tier for that inference, which
+        # its own groundedness check may reject as too weak to rely on).
+        conc_sev = DEAL.concentration_severity(max_pct)
         compounding = len(termination) >= 2 and bool(expiry)
-        severity = "High" if (max_pct is not None and max_pct >= 20) or compounding else "Medium"
+        severity = _max_sev(conc_sev, "Medium")
+        if compounding:
+            severity = "High"
         entity_name = names[entity_id]
 
         rationale_parts = [
@@ -107,6 +122,15 @@ def concentration_x_assignment_rule(conn: psycopg.Connection) -> list[int]:
             + f" (finding #{concentration[0].id}), and the governing agreement with {entity_name} "
             f"permits assignment/transfer on merger, acquisition, or change of control (finding #{assignment[0].id})."
         ]
+        if max_pct is not None:
+            rar = DEAL.revenue_at_risk_m(max_pct)
+            threshold_hit = "at or above" if rar >= DEAL.materiality_high_m else "below"
+            rationale_parts.append(
+                f"Scaled to this deal ({DEAL.money(DEAL.revenue_low_m)}–{DEAL.money(DEAL.revenue_high_m)} "
+                f"target revenue), a {max_pct:.0f}% single-customer concentration is roughly "
+                f"{DEAL.money(rar)} of revenue at risk at the band midpoint — {threshold_hit} the "
+                f"{DEAL.money(DEAL.materiality_high_m)} High-materiality threshold set for this engagement."
+            )
         if expiry:
             rationale_parts.append(
                 f"The agreement's term runs to a fixed expiry (finding #{expiry[0].id}), so renewal and "
@@ -118,11 +142,12 @@ def concentration_x_assignment_rule(conn: psycopg.Connection) -> list[int]:
                 f"#{', #'.join(str(f.id) for f in termination)}), which compounds the concentration exposure "
                 "regardless of the exact revenue percentage."
             )
-        if compounding and not (max_pct is not None and max_pct >= 20):
+        if compounding and conc_sev != "High":
             rationale_parts.append(
                 "Rated High on the compounding of certain facts alone (assignment rights + multiple "
                 "termination triggers + a fixed near-term expiry), not on the unconfirmed magnitude of "
-                "the concentration figure."
+                "the concentration figure — which on its own would rate "
+                f"{conc_sev} against this deal's materiality bands."
             )
         rationale_parts.append(
             "This risk uses only findings auto-linked to a resolved entity; it does not rely on any "
