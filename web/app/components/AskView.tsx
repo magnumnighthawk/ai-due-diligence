@@ -10,6 +10,7 @@ import {
   type DocumentDetail,
 } from "../lib/api";
 import DocumentViewer from "./DocumentViewer";
+import RichText, { splitBold } from "./RichText";
 import { PanelHeader, Empty } from "./panels";
 import { ICON_DEFAULT, ICON_INLINE } from "./icons";
 
@@ -264,6 +265,32 @@ function AnswerText({
   onCite: (c: Citation) => void;
 }) {
   const byMarker = new Map(citations.map((c) => [c.marker, c]));
+
+  // Inline pass over one block's text: **bold** spans, then [N] citation
+  // chips within them. Block structure (paragraphs / numbered lists) is
+  // handled by RichText -- the model emits real newlines and "1." markers
+  // that HTML would otherwise collapse into a single run-on paragraph.
+  const renderInline = (segment: string, keyBase: string): ReactNode =>
+    splitBold(segment).map((part, pi) => {
+      const inner = renderCitations(part.text, byMarker, onCite, `${keyBase}-${pi}`);
+      return part.bold ? (
+        <strong key={`${keyBase}-${pi}`} className="font-semibold text-graphite-800">
+          {inner}
+        </strong>
+      ) : (
+        <Fragment key={`${keyBase}-${pi}`}>{inner}</Fragment>
+      );
+    });
+
+  return <RichText text={text} renderInline={renderInline} />;
+}
+
+function renderCitations(
+  text: string,
+  byMarker: Map<number, Citation>,
+  onCite: (c: Citation) => void,
+  keyBase: string,
+): ReactNode[] {
   const nodes: ReactNode[] = [];
   const regex = /\[(\d+)\]/g;
   let last = 0;
@@ -271,12 +298,13 @@ function AnswerText({
   let key = 0;
 
   while ((match = regex.exec(text)) !== null) {
-    if (match.index > last) nodes.push(<Fragment key={key++}>{text.slice(last, match.index)}</Fragment>);
+    if (match.index > last)
+      nodes.push(<Fragment key={`${keyBase}-t${key++}`}>{text.slice(last, match.index)}</Fragment>);
     const c = byMarker.get(Number(match[1]));
     if (c) {
       nodes.push(
         <button
-          key={key++}
+          key={`${keyBase}-c${key++}`}
           onClick={() => onCite(c)}
           title={`${c.doc_title} — ${c.section}`}
           className="mx-0.5 inline-flex h-5 min-w-5 items-center justify-center rounded-full bg-signal-100 px-1.5 align-super font-mono text-micro font-semibold text-signal-700 transition-colors duration-150 hover:bg-signal-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-signal-500 focus-visible:ring-offset-1 active:scale-95"
@@ -285,12 +313,12 @@ function AnswerText({
         </button>,
       );
     } else {
-      nodes.push(<Fragment key={key++}>{match[0]}</Fragment>);
+      nodes.push(<Fragment key={`${keyBase}-r${key++}`}>{match[0]}</Fragment>);
     }
     last = regex.lastIndex;
   }
-  if (last < text.length) nodes.push(<Fragment key={key++}>{text.slice(last)}</Fragment>);
-  return <>{nodes}</>;
+  if (last < text.length) nodes.push(<Fragment key={`${keyBase}-t${key++}`}>{text.slice(last)}</Fragment>);
+  return nodes;
 }
 
 // Collect the [N] markers the answer text actually references.

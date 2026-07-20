@@ -2,6 +2,7 @@
 
 import { Fragment, type ReactNode } from "react";
 import type { FindingDetail } from "../lib/api";
+import RichText, { splitBold } from "./RichText";
 
 type Props = {
   rationale: string;
@@ -25,6 +26,38 @@ export default function Rationale({
   const positionById = new Map<number, number>();
   findings.forEach((f, i) => positionById.set(f.id, i + 1));
 
+  // Rule-composed rationales are single-paragraph prose, so this renders
+  // identically to before; agent-composed ones can carry real structure
+  // (newlines, numbered points) that would otherwise collapse inline.
+  const renderInline = (segment: string, keyBase: string): ReactNode =>
+    splitBold(segment).map((part, pi) => {
+      const inner = renderRefs(part.text, positionById, findings, onSelectFinding, activeFindingId, `${keyBase}-${pi}`);
+      return part.bold ? (
+        <strong key={`${keyBase}-${pi}`} className="font-semibold text-graphite-800">
+          {inner}
+        </strong>
+      ) : (
+        <Fragment key={`${keyBase}-${pi}`}>{inner}</Fragment>
+      );
+    });
+
+  return (
+    <RichText
+      text={rationale}
+      renderInline={renderInline}
+      className="text-body leading-relaxed text-graphite-700"
+    />
+  );
+}
+
+function renderRefs(
+  rationale: string,
+  positionById: Map<number, number>,
+  findings: FindingDetail[],
+  onSelectFinding: (finding: FindingDetail) => void,
+  activeFindingId: number | null,
+  keyBase: string,
+): ReactNode[] {
   const nodes: ReactNode[] = [];
   const regex = /#(\d+)/g;
   let lastIndex = 0;
@@ -37,7 +70,7 @@ export default function Rationale({
 
     // Text before this reference.
     if (match.index > lastIndex) {
-      nodes.push(<Fragment key={key++}>{rationale.slice(lastIndex, match.index)}</Fragment>);
+      nodes.push(<Fragment key={`${keyBase}-t${key++}`}>{rationale.slice(lastIndex, match.index)}</Fragment>);
     }
 
     if (position !== undefined) {
@@ -45,7 +78,7 @@ export default function Rationale({
       const active = activeFindingId === dbId;
       nodes.push(
         <button
-          key={key++}
+          key={`${keyBase}-c${key++}`}
           type="button"
           onClick={() => onSelectFinding(finding)}
           title={`Finding ${position}: ${finding.kind}`}
@@ -60,14 +93,14 @@ export default function Rationale({
       );
     } else {
       // Unknown id -- leave the original token untouched.
-      nodes.push(<Fragment key={key++}>{match[0]}</Fragment>);
+      nodes.push(<Fragment key={`${keyBase}-r${key++}`}>{match[0]}</Fragment>);
     }
     lastIndex = regex.lastIndex;
   }
 
   if (lastIndex < rationale.length) {
-    nodes.push(<Fragment key={key++}>{rationale.slice(lastIndex)}</Fragment>);
+    nodes.push(<Fragment key={`${keyBase}-t${key++}`}>{rationale.slice(lastIndex)}</Fragment>);
   }
 
-  return <p className="text-body leading-relaxed text-graphite-700">{nodes}</p>;
+  return nodes;
 }
