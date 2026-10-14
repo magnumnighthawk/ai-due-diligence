@@ -1,4 +1,4 @@
-"""Block 2: entity resolution. Link financial/commercial findings to
+"""Stage 3: entity resolution. Link financial/commercial findings to
 canonical entities (rapidfuzz + embedding threshold, alias-aware); anything
 under threshold is routed to human review rather than auto-linked.
 

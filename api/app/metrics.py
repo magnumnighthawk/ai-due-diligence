@@ -26,7 +26,7 @@ class PipelineTiming(BaseModel):
 @router.get("/metrics/pipeline", response_model=PipelineTiming)
 def pipeline_timing():
     """The measured end-to-end diligence cycle time: the most recent run of
-    each pipeline stage, plus their sum. Backs the brief's headline
+    each pipeline stage, plus their sum. Backs the headline
     'reduced diligence cycle time' success metric with a real number."""
     conn = get_conn()
     try:

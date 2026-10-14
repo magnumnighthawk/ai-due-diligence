@@ -2,8 +2,8 @@
 are parameterised against the deal's own scale, so a rating reflects
 materiality *to this deal* rather than a bare, arbitrary percentage.
 
-Source: the case study brief -- a mid-market services target with
-£100-250m revenue. Swapping to another deal is a config change here, not a
+Illustrative scenario: a mid-market services target with £100-250m
+revenue. Swapping to another deal is a config change here, not a
 code change in the rules engine.
 """
 from dataclasses import dataclass

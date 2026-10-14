@@ -4,7 +4,7 @@ extraction eval, and commit only the subset (not the 38MB source).
 CUAD (theatticusproject/cuad) is SQuAD-style clause annotation over 510 real
 contracts across 41 categories. We use it ONLY as an eval yardstick, never as
 demo/corpus data. "Change Of Control" is one of the 41 categories, which is
-exactly the clause the cross-workstream money-shot depends on detecting.
+exactly the clause the headline cross-workstream risk depends on detecting.
 
     # one-time: download the 38MB source (gitignored)
     curl -sL https://github.com/TheAtticusProject/cuad/raw/main/data.zip -o /tmp/cuad.zip

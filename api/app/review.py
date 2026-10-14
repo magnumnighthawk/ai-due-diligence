@@ -1,5 +1,5 @@
-"""Reviewer confirm/dismiss workflow -- the human-in-the-loop layer the brief
-requires ("review checkpoints and escalation paths"). Turns the passive
+"""Reviewer confirm/dismiss workflow -- the human-in-the-loop layer that
+provides review checkpoints and escalation paths. Turns the passive
 review_status field into an action: an analyst confirms or dismisses an item,
 and the who/when/why is recorded immutably in review_events while the item's
 current state is denormalised onto the row for display.

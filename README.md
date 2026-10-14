@@ -1,176 +1,213 @@
-# AI Due Diligence Acceleration
+# Diligence Radar — AI-assisted M&A due diligence
 
-Cross-workstream risk radar over a surrogate deal room built from real SEC filings.
+A reference prototype showing how LLMs can speed up M&A due diligence **without asking anyone to
+trust a black box**. It reads a deal room, pulls out typed findings for each diligence workstream
+(financial, commercial, operational), links those findings across workstreams by the entities they
+mention, and surfaces the risks that only show up when you join them. Every claim cites the exact
+passage it came from, and a human confirms or dismisses it.
 
-## Layout
+The sample deal room uses real, public SEC filings, so the whole thing runs locally and offline.
 
-- `api/` — FastAPI backend
-- `web/` — Next.js UI
-- `ingest/` — fetch/parse/chunk/embed scripts
-- `eval/` — pytest + Promptfoo eval harness
-- `db/schema.sql` — Postgres + pgvector schema, applied automatically on first `docker compose up`
+<table>
+  <tr>
+    <td width="33%" align="center">
+      <a href="docs/media/01-risk-register.png"><img src="docs/media/01-risk-register.png" alt="Risk register: a High cross-workstream risk, its linked findings, and the cited 10-K passage highlighted"></a>
+      <br><sub><b>Risk register</b>: risk → findings → highlighted source</sub>
+    </td>
+    <td width="33%" align="center">
+      <a href="docs/media/02-ask-the-deal-room.png"><img src="docs/media/02-ask-the-deal-room.png" alt="Ask the deal room: a cited answer about the Samsung licence's change-of-control clause"></a>
+      <br><sub><b>Ask the deal room</b>: grounded, cited answers</sub>
+    </td>
+    <td width="33%" align="center">
+      <a href="docs/media/03-review-queue.png"><img src="docs/media/03-review-queue.png" alt="Review queue: an unresolved finding awaiting analyst confirm or dismiss"></a>
+      <br><sub><b>Review queue</b>: a human confirms or dismisses</sub>
+    </td>
+  </tr>
+</table>
 
-## Setup
+<details>
+<summary>▶ Watch the walkthrough (GIF)</summary>
+<br>
+<img src="docs/media/walkthrough.gif" alt="Diligence Radar walkthrough: risk register, cited deal-room chat, and review queue">
+</details>
 
-```bash
-cp .env.example .env   # fill in OPENAI_API_KEY (or ANTHROPIC_API_KEY)
+## Why
 
-docker compose up -d   # Postgres + pgvector, schema applied on first boot
+Diligence teams split the work by workstream. Finance reads the 10-K, legal reads the contracts,
+operations reads the 8-Ks. Some of the most important risks sit *between* those piles:
 
-python3 -m venv .venv && .venv/bin/pip install -r api/requirements.txt
+> The 10-K says a single customer is more than 10% of revenue. A licence agreement in the legal
+> pile says that same customer can walk away on a change of control. Neither team sees the risk on
+> its own.
 
-.venv/bin/python3 ingest/run_ingest.py    # parse, chunk, embed, load the surrogate deal room
-.venv/bin/python3 ingest/run_extract.py   # typed findings via structured-output LLM extraction
-.venv/bin/python3 ingest/run_resolve.py   # entity resolution: link findings to canonical entities
-.venv/bin/python3 ingest/run_compose.py   # cross-reference: deterministic rules + LangGraph agent -> risks
+Diligence Radar is built to catch that kind of compound risk. It treats trust as the core product
+requirement. A finding nobody can verify is worth less than having no finding at all.
 
-cd api && ../.venv/bin/uvicorn app.main:app --reload
-# in another shell
-cd web && npm install && npm run dev
+## What it does
+
+- **Risk register.** Cross-workstream risks rated by severity. Open a risk to see its linked
+  findings, then open a finding to see the source document scrolled to the **cited character span,
+  highlighted**.
+- **Ask the deal room.** Grounded, cited Q&A over the documents (hybrid keyword + vector
+  retrieval). If the evidence isn't there, it answers *"insufficient evidence"* rather than guessing.
+- **Review queue.** Low-confidence or inferred items wait for an analyst to confirm or dismiss them.
+  Each decision is written to an immutable audit trail (who, when, why), and every Q&A query is
+  logged too.
+- **Measured cycle time.** Each pipeline stage records how long it took, so the time saved is a
+  number you can check, not a claim.
+
+## Design principles
+
+- **Citations on everything.** Findings carry character offsets into the source text, and the UI
+  always lets you check the original wording.
+- **Rules are the floor, the agent is the ceiling.** Deterministic cross-reference rules produce the
+  risks you can rely on. A LangGraph agent explores further inferences, but it has to pass its own
+  self-check, and anything it emits goes to human review.
+- **Calibration over alarm.** Severity is scaled to the deal's own materiality (revenue at risk, not
+  a bare percentage), and unrelated signals are never merged just to look dramatic.
+- **A reliable "I don't know" is a feature.** The Q&A abstains when the evidence isn't there, and
+  the evals test for exactly that.
+- **Honest evaluation.** The repo reports precision, recall and faithfulness numbers, and it keeps
+  known failures visible instead of tuning them away.
+
+## Scope
+
+This is a **prototype for exploring the pattern**, not a production system.
+
+| In scope | Out of scope |
+|---|---|
+| A single sample deal room (4 public filings) | Real virtual data room (VDR) connectors, OCR, multi-deal tenancy |
+| Three finding types: customer concentration, contract clauses, personnel events | An exhaustive diligence checklist |
+| Two cross-reference rules, plus one exploratory agent | A general-purpose risk engine |
+| Review workflow and audit log with a placeholder user | Real authentication or SSO (see `web/app/lib/user.ts`) |
+| Local development (CORS limited to `localhost:3000`) | Deployment, scaling, hardening |
+
+It does not provide legal, financial or investment advice.
+
+## How it works
+
+```mermaid
+flowchart LR
+    A[Deal-room docs<br/>10-K · contracts · 8-K] --> B[1. Ingest<br/>parse · chunk · embed]
+    B --> C[2. Extract<br/>typed findings via<br/>structured output]
+    C --> D[3. Resolve<br/>link findings to<br/>canonical entities]
+    D --> E[4. Compose<br/>rules + LangGraph agent<br/>→ cited risks]
+    E --> DB[(Postgres<br/>+ pgvector)]
+    B --> DB
+    DB --> API[FastAPI]
+    API --> UI[Next.js UI<br/>register · ask · review]
 ```
 
-API health check: `http://localhost:8000/health`
-Web: `http://localhost:3000`
+**Stack:** Python, FastAPI, Postgres + pgvector, OpenAI (`gpt-4o-mini`, `text-embedding-3-small`),
+LangGraph, rapidfuzz, Next.js 16 / React 19 / Tailwind 4, pytest and Promptfoo.
 
-The single-page UI is the trust feature: the **risk register** → click a risk → its **linked
-findings** (with workstream + resolved entity) → click a finding → the **source document with the
-cited char span highlighted** and scrolled into view. Endpoints: `GET /risks`, `GET /risks/{id}`
-(with findings), `GET /documents/{id}` (raw text), `POST /ask` (grounded, cited Q&A).
+| Path | What's there |
+|---|---|
+| [`ingest/`](ingest/README.md) | The four-stage pipeline: chunking, extraction, entity resolution, risk composition. **Start here for the design details.** |
+| `api/` | FastAPI service: risks, documents, Q&A, review, audit, metrics |
+| [`web/`](web/README.md) | Single-page UI |
+| [`eval/`](eval/README.md) | Extraction, faithfulness and abstention evals |
+| `db/` | `schema.sql` (applied automatically on first boot) and incremental migrations |
+| `docs/media/` | Screenshots and the walkthrough GIF used in this README |
 
-## Surrogate deal room: Universal Display Corporation (OLED, CIK 1005284)
+## Quickstart
 
-`ingest/run_ingest.py` loads four real UDC filings (already saved under `ingest/data/raw/` so
-the demo runs offline without hitting EDGAR):
+Prerequisites: Docker, Python 3.11+, Node 20+, and an OpenAI API key.
 
-- FY2022 10-K (financial) — customer concentration (Note 19; Item 1A names Samsung Display/LG Display/BOE)
-- Exhibit 10.25, OLED Patent License Agreement with Samsung Display (commercial) — Section 9.3
-  Non-Assignment is the change-of-control clause
-- 8-K, Aug 4 2022, Item 5.02 + press release exhibit (operational) — CFO retirement
+```bash
+cp .env.example .env                 # add your OPENAI_API_KEY
+docker compose up -d                 # Postgres + pgvector; schema applied on first boot
+python3 -m venv .venv && .venv/bin/pip install -r api/requirements.txt
 
-Ask a grounded, cited question once the API is running:
+# run the pipeline (safe to re-run: each stage rebuilds its own output)
+.venv/bin/python3 ingest/run_ingest.py    # 1. parse, chunk, embed the sample deal room
+.venv/bin/python3 ingest/run_extract.py   # 2. typed findings
+.venv/bin/python3 ingest/run_resolve.py   # 3. entity resolution
+.venv/bin/python3 ingest/run_compose.py   # 4. cross-reference → risks
+
+# serve
+cd api && ../.venv/bin/uvicorn app.main:app --reload    # http://localhost:8000/health
+cd web && npm install && npm run dev                     # http://localhost:3000 (second shell)
+```
+
+Then try a question:
 
 ```bash
 curl -s -X POST http://localhost:8000/ask -H "Content-Type: application/json" \
   -d '{"question": "what is the customer concentration?"}'
 ```
 
-### Chunking approach
+`db/migrations/` exists only for databases created before those changes. A fresh
+`docker compose up` already gets the full schema.
 
-`ingest/lib/chunk.py` is deliberately not keyed to any one document type (10-K vs. NDA vs.
-purchase agreement). It detects section boundaries from generic structural signals -- numbered/
-lettered/roman headings, "Item"/"Article"/"Section" keywords, ALL-CAPS lines, and bold/`<h1-6>`
-HTML styling -- so it generalizes to the mix of filings and Word-exported contracts a real VDR
-would contain, rather than only the SEC filings used for this demo. Text inside `<table>` tags is
-never treated as a heading candidate (financial tables shred into bogus "sections" otherwise), and
-inline-XBRL header/hidden blocks are stripped before chunking since they're machine-only metadata
-that would otherwise pollute embedding search with raw concept-name text.
+## Sample data
 
-### Typed extraction + entity resolution (Block 2)
+The sample deal room is **Universal Display Corporation** (OLED technology, CIK 1005284). It uses
+four public SEC filings, committed under `ingest/data/raw/` so the demo never touches EDGAR:
 
-`ingest/lib/extract_findings.py` runs targeted structured-output extraction (Pydantic schemas in
-`ingest/lib/schemas.py`) over chunks pre-classified by document + keyword match per finding type --
-concentration language in the 10-K, assignment/termination/exclusivity clauses in the license
-exhibit, retirement/appointment language in the 8-K -- rather than blind whole-document extraction.
-Each finding keeps a `source_index` back to the excerpt it was drawn from, resolved to that chunk's
-real `char_start`/`char_end` in `documents.raw_text`.
+| Workstream | Document | What it contributes |
+|---|---|---|
+| Financial | FY2022 10-K | Customer concentration (Samsung Display, LG Display, BOE) |
+| Commercial | Ex. 10.25: OLED patent licence with Samsung Display | Assignment / change-of-control, termination and expiry clauses |
+| Operational | 8-K (Aug 2022), Item 5.02, and the press-release exhibit | CFO retirement |
 
-`ingest/lib/entity_resolution.py` links `customer_name`/`counterparty` mentions to canonical
-`entities` rows using rapidfuzz + embedding cosine similarity, with two things worth knowing:
+The pipeline's headline output is a **High** risk on Samsung Display Co., Ltd. It is a material
+customer, and its licence permits assignment on change of control, with several termination
+triggers and a fixed expiry date. Each workstream sees only part of that picture.
 
-- **Bare abbreviations don't fuzzy/embedding-match their full name well** -- measured on this
-  corpus, "SDC" vs. "Samsung Display Co., Ltd." scores ~7/100 on token_set_ratio and ~0.30 cosine
-  similarity. Since these documents define abbreviations parenthetically on first use
-  (`Samsung Display Co., Ltd. ("SDC")`), a regex mines that convention into an alias map and
-  resolves "SDC" to the full name *before* fuzzy/embedding matching, rather than fabricating the
-  mapping. This is what actually makes the concentration finding and the license-agreement clauses
-  land on the same canonical entity.
-- **token_set_ratio/partial_ratio produced a false link** -- "LG Display" scored 82/100 against
-  "Samsung Display Co., Ltd." purely because both share the generic token "Display". Switched to
-  plain `fuzz.ratio` (whole-string, case-insensitive), which separates that case (46) from real
-  near-duplicates (93-100) cleanly.
-- Mentions shorter than 3 characters (the 10-K's anonymized "Customer A/B/C" concentration table)
-  are never auto-linked or used to seed a new canonical entity -- they always route to
-  `review_status = 'needs_review'`, since there's no reliable signal to resolve them and a false
-  link in a risk register is worse than a missing one.
+The deal's own scale (revenue band, materiality thresholds) lives in `ingest/lib/deal_context.py`.
+These are illustrative values for a mid-market acquisition, kept separate from the target's
+filings.
 
-Verify the result:
+## API
 
-```bash
-docker compose exec db psql -U postgres -d diligence -c "
-SELECT e.canonical_name, array_agg(DISTINCT f.workstream), count(*)
-FROM findings f JOIN entities e ON e.id = f.entity_id
-GROUP BY e.canonical_name HAVING count(DISTINCT f.workstream) > 1;"
-```
+| Method | Path | Purpose |
+|---|---|---|
+| GET | `/health` | Liveness check |
+| GET | `/risks` · `/risks/{id}` | Risk register; one risk with its linked findings |
+| GET | `/documents/{id}` | Raw document text (for highlighting cited spans) |
+| POST | `/ask` | Grounded, cited Q&A with abstention |
+| GET | `/review-queue` | Findings awaiting human review |
+| PATCH | `/findings/{id}/review` · `/risks/{id}/review` | Confirm or dismiss, with a note |
+| GET | `/audit/queries` | Q&A audit log |
+| GET | `/metrics/pipeline` | Measured duration of each stage and end to end |
 
-This should show `Samsung Display Co., Ltd.` linked from both `financial` (the concentration
-finding) and `commercial` (the license agreement's assignment/termination/term-expiry clauses) --
-the cross-workstream finding no single workstream would catch on its own.
+Interactive docs are at `http://localhost:8000/docs` while the API is running.
 
-### Cross-reference + risk composition (Block 3)
+## Evaluation
 
-`ingest/lib/risk_rules.py` is the reliable floor: it groups entity-resolved findings by
-`entity_id` and fires two deterministic rules.
+Three small evals cover the behaviours that matter most for trust (details in
+[`eval/README.md`](eval/README.md)):
 
-- **Concentration × assignment.** If an entity has both a `customer_concentration` finding and an
-  assignment/change-of-control `contract_clause`, emit one risk citing every related finding
-  (including termination and term-expiry clauses as compounding evidence). Severity is High if
-  either an exact disclosed percentage is ≥20%, *or* the certain facts alone compound enough
-  (assignment rights + 2+ independent termination triggers + a fixed near-term expiry) --
-  deliberately not dependent on guessing which anonymized concentration-table row belongs to the
-  entity. This is what produces the money-shot risk: Samsung Display Co., Ltd. has only a
-  disclosed ">10%" threshold (not an exact figure), but assignment-on-change-of-control + 3
-  termination triggers + a Dec-2027 expiry is enough certain evidence on its own for High.
-- **Personnel monitoring.** A senior-finance departure (the CFO retirement) is always emitted as
-  its own standalone, Low-severity note -- never merged into a customer risk, since nothing in the
-  corpus ties it to a specific relationship. Calibration (not flagging everything red) is
-  deliberate, not an oversight.
-
-`ingest/lib/risk_agent.py` is the exploratory ceiling: a real LangGraph graph
-(`plan → gather → propose → self_check → emit`) that, per entity, gathers both entity-resolved
-findings and *candidate* findings from the same source document that entity resolution declined to
-auto-link (e.g. the anonymized "Customer A/B/C" table), and asks an LLM whether that candidate
-evidence plausibly sharpens the risk enough to argue for higher severity than the rules engine's
-conservative version -- always labeling anything inferred as inferred, and always landing in
-`review_status = 'needs_review'` if it does emit something.
-
-On this corpus, the agent's specific attempt -- "Customer A's 41% might be Samsung's true
-concentration" -- gets correctly **rejected by its own self-check step**, which judged the
-identity inference (SDC = "Customer A") as unsupported by the cited findings. `run_compose.py`
-prints that rejection and its reason rather than silently dropping it: this is the safety
-mechanism working as designed ("the agent can hallucinate a link... every agent-composed risk
-still carries citations a human verifies"), not a failure to route around. The honest answer
-here wasn't to keep prompt-engineering until the checker rubber-stamped a weak inference -- it
-was to move the legitimately-certain compounding factors into the rules tier instead, which is
-exactly the plan's own cut line: *"rules-only cross-referencing that works beats a flaky agent
-every time."*
-
-Verify the done-when condition:
+| Eval | Result |
+|---|---|
+| Change-of-control extraction vs. a held-out **CUAD** subset | P = 1.00, R = 0.80, F1 = 0.89 |
+| Citation faithfulness (span containment / LLM judge) | 100% / 93% |
+| Abstention on unanswerable questions (Promptfoo) | 5/5 |
 
 ```bash
-docker compose exec db psql -U postgres -d diligence -c "
-SELECT r.title, r.severity, r.source, array_agg(DISTINCT f.workstream), r.finding_ids
-FROM risks r, unnest(r.finding_ids) fid JOIN findings f ON f.id = fid
-GROUP BY r.id, r.title, r.severity, r.source, r.finding_ids;"
+.venv/bin/python3 -m pytest eval -s
+cd eval/promptfoo && npx promptfoo@0.121 eval -c promptfooconfig.yaml --no-cache
 ```
 
-### Evaluation (Block 4)
+## Reusing and extending
 
-Three cheap, high-signal evals under `eval/` (details and latest numbers in `eval/README.md`):
+- **Your own documents.** Follow the three steps in
+  [`ingest/README.md`](ingest/README.md#using-your-own-documents). The chunker uses generic
+  structural signals rather than SEC-specific ones, so contracts exported from Word also work.
+- **New finding types.** Add a Pydantic schema in `ingest/lib/schemas.py` plus instructions and an
+  `extract_*_findings` function in `ingest/lib/extract_findings.py`.
+- **New cross-reference rules.** Add a function to `ingest/lib/risk_rules.py` and register it in
+  `run_rules`.
+- **A different deal size.** Change `DEAL` in `ingest/lib/deal_context.py`. Severity bands follow
+  automatically.
+- **Different models.** Model names are constants at the top of `api/app/answer.py`,
+  `api/app/embed.py`, `ingest/lib/embed.py`, `ingest/lib/extract_findings.py`,
+  `ingest/lib/risk_agent.py` and `eval/lib/llm.py`. If you change the embedding model, also check the
+  vector dimension in `db/schema.sql`.
+- **Real authentication.** Replace `CURRENT_USER` in `web/app/lib/user.ts`. The review and audit
+  code paths already use it as the actor.
 
-- **Extraction P/R** (`pytest`) — change-of-control detection scored against a held-out **CUAD**
-  subset (real gold annotations, eval-only): **P=1.00, R=0.80, F1=0.89**. The recall misses are
-  truncated CUAD spans — a measured, explainable failure, not a hidden one.
-- **Citation faithfulness** (`pytest`) — every finding's cited span must contain its claim:
-  span-containment **100%**, LLM-judge **93%**. The one miss is a real catch (a continuation
-  mislabeled as an appointment).
-- **Abstention** (`pytest` + **Promptfoo**) — unanswerable questions must return "insufficient
-  evidence"; answerable ones must not. Promptfoo run: **5/5**.
+## License
 
-```bash
-.venv/bin/python3 -m pytest eval -s                    # extraction P/R, faithfulness, abstention
-cd eval/promptfoo && npx promptfoo@0.121 eval -c promptfooconfig.yaml --no-cache   # Q&A via Promptfoo
-```
-
-One retrieval failure is kept deliberately (see `eval/README.md`): a query repeating the filer's
-own name falsely abstains because `ts_rank` has no corpus IDF — walking through it is a stronger
-signal than hiding it.
+[MIT](LICENSE)

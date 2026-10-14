@@ -40,5 +40,5 @@ unzip -o /tmp/cuad.zip -d eval/data/ CUADv1.json
 abstains: the ubiquitous company name dominates both retrieval arms (`ts_rank`
 has no corpus IDF, and the name dilutes the query embedding), pushing the
 concentration table out of the top-k. This is a real, explainable limitation,
-not hidden — the fix at scale is IDF-weighted / learned ranking (Azure AI
-Search semantic ranker), the same pattern the prototype already models.
+not hidden — the fix at scale is IDF-weighted or learned (semantic)
+reranking, which slots into the existing hybrid-retrieval step.

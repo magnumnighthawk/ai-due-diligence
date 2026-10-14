@@ -1,7 +1,7 @@
 """Pipeline-timing instrumentation. Each pipeline stage (ingest, extract,
 resolve, compose) records its wall-clock duration and output counts to the
-pipeline_runs table, so the end-to-end diligence *cycle time* -- the brief's
-headline success metric -- is measured, not asserted.
+pipeline_runs table, so the end-to-end diligence *cycle time* -- the headline
+success metric for diligence acceleration -- is measured, not asserted.
 
 Usage:
 

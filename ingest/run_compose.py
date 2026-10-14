@@ -1,4 +1,4 @@
-"""Block 3: cross-reference + risk composition. Runs the deterministic
+"""Stage 4: cross-reference + risk composition. Runs the deterministic
 rules (reliable floor) first, then the LangGraph agent (exploratory
 ceiling) over the same findings/entities.
 

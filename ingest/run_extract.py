@@ -1,4 +1,4 @@
-"""Block 2: typed extraction. Run targeted structured-output extraction over
+"""Stage 2: typed extraction. Run targeted structured-output extraction over
 the already-ingested chunks and load results into the `findings` table.
 
     .venv/bin/python3 ingest/run_extract.py

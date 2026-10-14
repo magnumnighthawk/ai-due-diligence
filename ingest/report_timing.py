@@ -1,5 +1,5 @@
 """Print the end-to-end diligence cycle time from the most recent run of
-each pipeline stage. This is the concrete, measured version of the brief's
+each pipeline stage. This is the concrete, measured version of the
 headline "reduced diligence cycle time" success metric.
 
     .venv/bin/python3 ingest/report_timing.py

@@ -14,8 +14,8 @@ ALTER TABLE risks ADD COLUMN IF NOT EXISTS reviewed_by TEXT;
 ALTER TABLE risks ADD COLUMN IF NOT EXISTS reviewed_at TIMESTAMPTZ;
 ALTER TABLE risks ADD COLUMN IF NOT EXISTS review_note TEXT;
 
--- One immutable row per human review action -- the audit trail the brief's
--- "review checkpoints and escalation paths" requires.
+-- One immutable row per human review action -- the audit trail
+-- behind the review checkpoints and escalation paths.
 CREATE TABLE IF NOT EXISTS review_events (
   id BIGSERIAL PRIMARY KEY,
   target_type TEXT NOT NULL,      -- 'finding' | 'risk'
